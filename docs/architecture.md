@@ -18,6 +18,7 @@ Client → API → Redis Queue → Worker → Docker Execution → Result
 
 * Handles incoming requests
 * Pushes jobs to queue
+* Exports Prometheus metrics
 
 ### Redis
 
@@ -28,6 +29,13 @@ Client → API → Redis Queue → Worker → Docker Execution → Result
 * Consumes jobs
 * Executes code in Docker
 * Generates AI feedback
+* Publishes performance metrics
+
+### Metrics System
+
+* Tracks queue depth, job duration, completion/failure rates
+* Exports metrics via `/metrics` endpoint (Prometheus format)
+* Includes system-level metrics (CPU, memory, file descriptors)
 
 ---
 

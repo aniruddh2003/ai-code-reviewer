@@ -60,6 +60,19 @@
 
 # 🔥 Phase 1 – Core Enhancements
 
+## ✅ 0. Basic Metrics (COMPLETED)
+
+- Prometheus metrics export (`/metrics` endpoint)
+- Queue depth monitoring
+- Job duration tracking
+- Completion/failure rate counters
+- Active worker jobs gauge
+- System-level metrics (CPU, memory)
+
+👉 Enables operational visibility and basic alerting
+
+---
+
 ## 1. Test Case Execution
 
 - Run multiple test cases

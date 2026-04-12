@@ -62,6 +62,16 @@ docker logs ai-code-reviewer-worker-1
 
 ---
 
+## 6. Monitor metrics
+
+```bash
+curl http://localhost:3000/metrics
+```
+
+View Prometheus metrics including queue depth, job duration, completion/failure rates.
+
+---
+
 # ⚡ Faster Development (Recommended)
 
 To avoid rebuilding every time, use volume mounting.
