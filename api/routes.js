@@ -1,5 +1,6 @@
 const express = require("express");
 const { codeQueue } = require("./queue");
+const { fail } = require("node:assert");
 
 const router = express.Router();
 
@@ -19,6 +20,21 @@ router.post("/submit", async (req, res) => {
     jobId: job.id,
     status: "queued",
   });
+});
+
+router.get("/status/:jobId", async (req, res) => {
+  const { jobId } = req.params;
+
+  const job = await codeQueue.getJob(jobId);
+  if (!job) {
+    return res.status(404).json({ error: "Job not found" });
+  }
+
+  const state = await job.getState();
+  const result = await job.returnvalue;
+  const failedReason = job.failedReason;
+
+  res.json({ id: jobId, status: state, result, failedReason });
 });
 
 module.exports = router;
