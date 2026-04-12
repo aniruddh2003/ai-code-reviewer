@@ -49,6 +49,19 @@ curl -X POST http://localhost:3000/submit \
 
 ---
 
+## JavaScript Example
+
+```bash id="submit3"
+curl -X POST http://localhost:3000/submit \
+-H "Content-Type: application/json" \
+-d '{
+  "code": "console.log(\"Hello from JS\")",
+  "language": "javascript"
+}'
+```
+
+---
+
 # 📌 2. Check Job Status
 
 ```bash id="status1"

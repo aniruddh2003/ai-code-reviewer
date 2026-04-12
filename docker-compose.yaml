@@ -6,6 +6,18 @@ services:
     ports:
       - "6379:6379"
 
+  python-runner:
+    build:
+      context: ./docker
+      dockerfile: python.Dockerfile
+    image: python-runner
+
+  js-runner:
+    build:
+      context: ./docker
+      dockerfile: javascript.Dockerfile
+    image: js-runner
+
   api:
     build:
       context: .
@@ -15,6 +27,8 @@ services:
       - "3000:3000"
     depends_on:
       - redis
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
 
   worker:
     build:

@@ -16,26 +16,26 @@ Client → API → Redis Queue → Worker → Docker Execution → Result
 
 ### API
 
-* Handles incoming requests
-* Pushes jobs to queue
-* Exports Prometheus metrics
+- Handles incoming requests
+- Pushes jobs to queue
+- Exports Prometheus metrics
 
 ### Redis
 
-* Stores job queue
+- Stores job queue
 
 ### Worker
 
-* Consumes jobs
-* Executes code in Docker
-* Generates AI feedback
-* Publishes performance metrics
+- Consumes jobs
+- Executes code in isolated Docker containers
+- Generates AI feedback
+- Publishes performance metrics
 
-### Metrics System
+### Execution Containers
 
-* Tracks queue depth, job duration, completion/failure rates
-* Exports metrics via `/metrics` endpoint (Prometheus format)
-* Includes system-level metrics (CPU, memory, file descriptors)
+- **python-runner** - Executes Python 3.10 code safely
+- **js-runner** - Executes JavaScript/Node.js 18 code safely
+- Both containers have resource limits (100MB memory, 0.5 CPU) and 10-second timeout
 
 ---
 
@@ -51,6 +51,6 @@ Client → API → Redis Queue → Worker → Docker Execution → Result
 
 ## Key Concepts
 
-* Asynchronous processing
-* Container isolation
-* Service-to-service communication
+- Asynchronous processing
+- Container isolation
+- Service-to-service communication

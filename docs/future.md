@@ -43,7 +43,7 @@
 
 - Test case validation system
 - Submission history
-- Multi-language support
+- Extended language support (Java, Go, etc.)
 - Real-time status updates
 - Frontend dashboard
 
@@ -51,7 +51,7 @@
 
 # 🧠 Current Limitations
 
-- Supports only Python
+- Limited language support (Python, JavaScript)
 - No persistent storage
 - Basic AI feedback
 - Uses polling instead of real-time updates
@@ -73,7 +73,18 @@
 
 ---
 
-## 1. Test Case Execution
+## ✅ 1. JavaScript Support (COMPLETED)
+
+- Added JavaScript (Node.js 18) execution alongside Python
+- Secure Docker container isolation
+- Same resource limits (100MB memory, 0.5 CPU)
+- 5 second execution timeout
+
+👉 Moves toward multi-language support
+
+---
+
+## 2. Test Case Execution
 
 - Run multiple test cases
 - Return pass/fail results

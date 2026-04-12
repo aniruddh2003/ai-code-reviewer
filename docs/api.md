@@ -13,6 +13,10 @@ Submit code for execution
 }
 ```
 
+**Supported languages:**
+- `python` - Python 3.x
+- `javascript` - Node.js 18+
+
 ### Response
 
 ```json

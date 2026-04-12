@@ -8,9 +8,11 @@ This document defines the **standard process for adding features, debugging, and
 
 Services:
 
-- API (Express)
-- Worker (BullMQ)
-- Redis
+- **API** (Express) - Handles job submission and status queries
+- **Worker** (BullMQ) - Consumes jobs and orchestrates execution
+- **Redis** - Job queue
+- **python-runner** - Docker image for Python execution
+- **js-runner** - Docker image for JavaScript execution
 
 All run inside Docker using `docker-compose`.
 
