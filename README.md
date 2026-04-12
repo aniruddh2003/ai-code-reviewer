@@ -8,10 +8,10 @@ A backend system that securely executes user-submitted code inside Docker contai
 
 ## 🧠 Features
 
-* 🔄 Asynchronous job processing using Redis + BullMQ
-* 🐳 Secure code execution using Docker containers
-* 🤖 AI-based code analysis and feedback
-* ⚡ Scalable worker-based architecture
+- 🔄 Asynchronous job processing using Redis + BullMQ
+- 🐳 Secure code execution using Docker containers
+- 🤖 AI-based code analysis and feedback
+- ⚡ Scalable worker-based architecture
 
 ---
 
@@ -23,10 +23,10 @@ Client → API → Queue (Redis) → Worker → Docker Execution + AI Review
 
 ## ⚙️ Tech Stack
 
-* Node.js (Express)
-* Redis (BullMQ)
-* Docker
-* OpenAI API
+- Node.js (Express)
+- Redis (BullMQ)
+- Docker
+- OpenAI API
 
 ---
 
@@ -79,18 +79,26 @@ Submit code for execution
 
 ## 🔐 Security Notes
 
-* Code runs in isolated Docker containers
-* CPU and memory limits applied
-* No direct execution on host system
+- Code runs in isolated Docker containers
+- CPU and memory limits applied
+- No direct execution on host system
 
 ---
 
 ## 🚧 Future Improvements
 
-* Multi-language support
-* Test case validation
-* Job status tracking API
-* Kubernetes deployment
+- Multi-language support
+- Test case validation
+- Job status tracking API
+- Kubernetes deployment
+
+---
+
+## 📘 Development Log
+
+- [Day 1 – Foundation](docs/devlog/day-01-foundation.md)
+- [Day 2 – Docker & Networking](docs/devlog/day-02-docker-networking.md)
+- [Day 3 – Execution Engine](docs/devlog/day-03-execution-engine.md)
 
 ---
 
