@@ -43,7 +43,7 @@
 
 - Test case validation system
 - Submission history
-- Extended language support (Java, Go, etc.)
+- Extended language support (Java, Go, Rust, etc.)
 - Real-time status updates
 - Frontend dashboard
 
@@ -51,7 +51,7 @@
 
 # 🧠 Current Limitations
 
-- Limited language support (Python, JavaScript)
+- Limited language support (Python, JavaScript, C++)
 - No persistent storage
 - Basic AI feedback
 - Uses polling instead of real-time updates
@@ -84,7 +84,18 @@
 
 ---
 
-## 2. Test Case Execution
+## ✅ 2. C++ Support (COMPLETED)
+
+- Added C++ (GCC 12) compilation and execution
+- Compiles and runs user code in isolated Docker container
+- Resource limits (100MB memory, 0.5 CPU)
+- 15 second timeout (accounts for compilation time)
+
+👉 Supports compiled languages with full compilation pipeline
+
+---
+
+## 3. Test Case Execution
 
 - Run multiple test cases
 - Return pass/fail results

@@ -12,7 +12,11 @@ async function runInDocker(code, language) {
 
   const filePath = path.join(
     tempDir,
-    language === "javascript" ? "script.js" : "script.py",
+    language === "javascript"
+      ? "script.js"
+      : language === "cpp"
+        ? "script.cpp"
+        : "script.py",
   );
   fs.writeFileSync(filePath, code);
 
@@ -44,6 +48,24 @@ async function runInDocker(code, language) {
         js-runner \
         node /app/script.js`,
         { timeout: 10000 },
+        (err, stdout, stderr) => {
+          fs.rmSync(tempDir, { recursive: true, force: true });
+
+          if (err) return resolve(stderr || err.message);
+
+          resolve(stdout);
+        },
+      );
+    });
+  } else if (language === "cpp") {
+    return new Promise((resolve) => {
+      exec(
+        `docker run --rm \
+        -v ${tempDir}:/app \
+        --memory=100m \
+        --cpus="0.5" \
+        cpp-runner`,
+        { timeout: 15000 },
         (err, stdout, stderr) => {
           fs.rmSync(tempDir, { recursive: true, force: true });
 

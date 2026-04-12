@@ -18,6 +18,12 @@ services:
       dockerfile: javascript.Dockerfile
     image: js-runner
 
+  cpp-runner:
+    build:
+      context: ./docker
+      dockerfile: cpp.Dockerfile
+    image: cpp-runner
+
   api:
     build:
       context: .

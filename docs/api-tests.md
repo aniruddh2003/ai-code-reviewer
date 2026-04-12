@@ -62,6 +62,19 @@ curl -X POST http://localhost:3000/submit \
 
 ---
 
+## C++ Example
+
+```bash id="submit4"
+curl -X POST http://localhost:3000/submit \
+-H "Content-Type: application/json" \
+-d '{
+  "code": "#include <iostream>\nusing namespace std;\nint main() {\n  cout << \"Hello from C++\" << endl;\n  return 0;\n}",
+  "language": "cpp"
+}'
+```
+
+---
+
 # 📌 2. Check Job Status
 
 ```bash id="status1"

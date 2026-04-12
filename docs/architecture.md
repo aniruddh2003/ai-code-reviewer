@@ -35,7 +35,9 @@ Client → API → Redis Queue → Worker → Docker Execution → Result
 
 - **python-runner** - Executes Python 3.10 code safely
 - **js-runner** - Executes JavaScript/Node.js 18 code safely
-- Both containers have resource limits (100MB memory, 0.5 CPU) and 10-second timeout
+
+* **cpp-runner** - Compiles and executes C++ code with GCC 12
+* All containers have resource limits (100MB memory, 0.5 CPU) and configurable timeouts
 
 ---
 

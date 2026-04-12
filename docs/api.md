@@ -14,8 +14,10 @@ Submit code for execution
 ```
 
 **Supported languages:**
-- `python` - Python 3.x
+
+- `python` - Python 3.10
 - `javascript` - Node.js 18+
+- `cpp` - C++ (GCC 12, compiled and executed)
 
 ### Response
 

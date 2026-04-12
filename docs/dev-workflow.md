@@ -11,8 +11,9 @@ Services:
 - **API** (Express) - Handles job submission and status queries
 - **Worker** (BullMQ) - Consumes jobs and orchestrates execution
 - **Redis** - Job queue
-- **python-runner** - Docker image for Python execution
-- **js-runner** - Docker image for JavaScript execution
+- **python-runner** - Docker image for Python 3.10 execution
+- **js-runner** - Docker image for JavaScript/Node.js 18 execution
+- **cpp-runner** - Docker image for C++ compilation and execution
 
 All run inside Docker using `docker-compose`.
 
