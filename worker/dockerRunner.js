@@ -10,26 +10,75 @@ async function runInDocker(code, language) {
 
   fs.mkdirSync(tempDir);
 
-  const filePath = path.join(tempDir, "script.py");
+  const filePath = path.join(
+    tempDir,
+    language === "javascript"
+      ? "script.js"
+      : language === "cpp"
+        ? "script.cpp"
+        : "script.py",
+  );
   fs.writeFileSync(filePath, code);
 
-  return new Promise((resolve) => {
-    exec(
-      `docker run --rm \
-      -v ${tempDir}:/app \
-      --memory=100m \
-      --cpus="0.5" \
-      python-runner`,
-      { timeout: 5000 },
-      (err, stdout, stderr) => {
-        fs.rmSync(tempDir, { recursive: true, force: true });
+  if (language === "python") {
+    return new Promise((resolve) => {
+      exec(
+        `docker run --rm \
+        -v ${tempDir}:/app \
+        --memory=100m \
+        --cpus="0.5" \
+        python-runner`,
+        { timeout: 10000 },
+        (err, stdout, stderr) => {
+          fs.rmSync(tempDir, { recursive: true, force: true });
 
-        if (err) return resolve(stderr || err.message);
+          if (err) return resolve(stderr || err.message);
 
-        resolve(stdout);
-      },
-    );
-  });
+          resolve(stdout);
+        },
+      );
+    });
+  } else if (language === "javascript") {
+    return new Promise((resolve) => {
+      exec(
+        `docker run --rm \
+        -v ${tempDir}:/app \
+        --memory=100m \
+        --cpus="0.5" \
+        js-runner \
+        node /app/script.js`,
+        { timeout: 10000 },
+        (err, stdout, stderr) => {
+          fs.rmSync(tempDir, { recursive: true, force: true });
+
+          if (err) return resolve(stderr || err.message);
+
+          resolve(stdout);
+        },
+      );
+    });
+  } else if (language === "cpp") {
+    return new Promise((resolve) => {
+      exec(
+        `docker run --rm \
+        -v ${tempDir}:/app \
+        --memory=100m \
+        --cpus="0.5" \
+        cpp-runner`,
+        { timeout: 15000 },
+        (err, stdout, stderr) => {
+          fs.rmSync(tempDir, { recursive: true, force: true });
+
+          if (err) return resolve(stderr || err.message);
+
+          resolve(stdout);
+        },
+      );
+    });
+  } else {
+    fs.rmSync(tempDir, { recursive: true, force: true });
+    return "Unsupported language";
+  }
 }
 
 module.exports = { runInDocker };
