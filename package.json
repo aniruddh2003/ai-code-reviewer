@@ -6,12 +6,13 @@
     "worker": "node worker/worker.js"
   },
   "dependencies": {
-    "express": "^4.18.2",
     "bullmq": "^5.7.0",
-    "ioredis": "^5.3.2",
-    "uuid": "^9.0.0",
-    "openai": "^4.0.0",
     "dotenv": "^16.3.1",
-    "prom-client": "^15.1.0"
+    "express": "^4.18.2",
+    "ioredis": "^5.3.2",
+    "openai": "^4.0.0",
+    "prom-client": "^15.1.0",
+    "socket.io": "^4.8.3",
+    "uuid": "^9.0.0"
   }
 }

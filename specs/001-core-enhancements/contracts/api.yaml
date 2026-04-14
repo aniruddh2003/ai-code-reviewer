@@ -1,0 +1,50 @@
+openapi: 3.0.0
+info:
+  title: AI Code Reviewer API
+  version: 1.0.0
+paths:
+  /status/{jobId}:
+    get:
+      summary: Retrieves the status and result of an async execution job.
+      parameters:
+        - in: path
+          name: jobId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                  status:
+                    type: string
+                    example: completed
+                  result:
+                    type: object
+
+  /webhook/github:
+    post:
+      summary: Accepts GitHub Pull Request webhooks
+      parameters:
+        - in: header
+          name: x-hub-signature-256
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Accepted & Queued
+        '401':
+          description: Unauthorized (Bad HMAC signature)
