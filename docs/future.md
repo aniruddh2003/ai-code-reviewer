@@ -20,9 +20,9 @@
 
 ---
 
-## 🏢 Team / Organization (Future)
+## 🏢 Team / Organization 
 
-- As a team, we want automated code review for pull requests
+- As a team, we want automated code review for pull requests (ACHIEVED)
 - As a team, we want secure execution of untrusted scripts
 
 ---
@@ -32,10 +32,11 @@
 ## Core Features (Current + Near Future)
 
 - Code submission API
-- Asynchronous job processing
-- Docker-based secure execution
-- AI-based code review
-- Job status tracking
+- Asynchronous job processing (BullMQ)
+- Docker-based secure execution (Python, Node, Go)
+- AI-based code review with Result Caching
+- Real-time status tracking via WebSockets
+- Automated GitHub Pull Request comment injection
 
 ---
 
@@ -43,86 +44,35 @@
 
 - Test case validation system
 - Submission history
-- Extended language support (Java, Go, Rust, etc.)
-- Real-time status updates
+- Extended language support (Java, Rust, C++)
 - Frontend dashboard
 
 ---
 
 # 🧠 Current Limitations
 
-- Limited language support (Python, JavaScript, C++)
-- No persistent storage
-- Basic AI feedback
-- Uses polling instead of real-time updates
+- No persistent persistent state store (aside from Redis Cache timeouts)
+- Basic structural AI feedback without deep syntax-tree parsing
 
 ---
 
 # 🔥 Phase 1 – Core Enhancements
 
 ## ✅ 0. Basic Metrics (COMPLETED)
-
 - Prometheus metrics export (`/metrics` endpoint)
-- Queue depth monitoring
-- Job duration tracking
-- Completion/failure rate counters
-- Active worker jobs gauge
-- System-level metrics (CPU, memory)
-
-👉 Enables operational visibility and basic alerting
-
----
 
 ## ✅ 1. JavaScript Support (COMPLETED)
+- Added Node.js 18 execution
 
-- Added JavaScript (Node.js 18) execution alongside Python
-- Secure Docker container isolation
-- Same resource limits (100MB memory, 0.5 CPU)
-- 5 second execution timeout
+## ✅ 2. Structural & Architectural Reliability (COMPLETED)
+- Bound Docker Execution parameters tightly to a 10s maximum timeout
+- Configured native BullMQ Retries via Exponential Backlogs to gracefully bypass OpenAI rate limit issues.
 
-👉 Moves toward multi-language support
-
----
-
-## ✅ 2. C++ Support (COMPLETED)
-
-- Added C++ (GCC 12) compilation and execution
-- Compiles and runs user code in isolated Docker container
-- Resource limits (100MB memory, 0.5 CPU)
-- 15 second timeout (accounts for compilation time)
-
-👉 Supports compiled languages with full compilation pipeline
-
----
-
-## 3. Test Case Execution
-
-- Run multiple test cases
-- Return pass/fail results
-
-👉 Moves system closer to coding platforms like LeetCode
-
----
-
-## 2. Database Integration
-
-- Store job results in PostgreSQL
-
-👉 Enables history tracking and analytics
-
----
-
-## 3. Structured AI Feedback
-
-```json id="m0z9zt"
-{
-  "bugs": [],
-  "improvements": [],
-  "complexity": "O(n)"
-}
-```
-
-👉 Makes output usable for UI and automation
+## ✅ 3. Platform Growth & Scaling (COMPLETED)
+- Implemented **Socket.io** integration for real-time `job_update` hooks.
+- Implemented **Result Caching** using SHA256 hashed code payloads with a 7-day TTL reducing AI cost footprints.
+- Expanded supported sandboxing to **Golang (1.20)** execution environments.
+- Developed an automated CI/CD **GitHub Webhook** listener validating HMAC arrays and natively pinging results.
 
 ---
 
@@ -130,59 +80,27 @@
 
 ## 4. Frontend Dashboard
 
-- Submit code
-- View results
+- Submit code manually
 - Display AI insights
-
----
-
-## 5. Real-time Updates
-
-- Replace polling with WebSockets
-
-👉 Better UX
+- Visualized historical analytics
 
 ---
 
 # 🔐 Phase 3 – Security
 
-- Disable network in containers
-- Add strict CPU/memory limits
-- Prevent infinite loops
+- Disable external network calls across all internal docker containers
+- Lock CPU bounds to strict limits programmatically
 
 ---
 
 # 🧱 Phase 4 – Scalability
 
 - Kubernetes deployment
-- Auto-scaling workers
 - Distributed queue system
 
 ---
 
 # 🧪 Phase 5 – Advanced Features
 
-- Code similarity detection
-- GitHub PR review integration
-- Leaderboard system
-
----
-
-# 🎯 Long-Term Vision
-
-Build an:
-
-👉 **AI-powered developer platform**
-
-Where users can:
-
-- run code securely
-- get intelligent feedback
-- integrate with real-world workflows
-
----
-
-# 💣 Key Insight
-
-Current system → Execution Engine
-Future system → Developer Platform
+- IDE extensions for live review
+- Leaderboard system for interview prep tracking

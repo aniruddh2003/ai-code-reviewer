@@ -5,6 +5,15 @@
 **Status**: Draft  
 **Input**: User description: "all above (Job Status API, Result Caching, Multi-language Support, WebSockets, GitHub Webhook)"
 
+## Clarifications
+
+### Session 2026-04-14
+- Q: How do we prevent unauthorized users from eavesdropping on WebSocket job updates? → A: Use unguessable UUIDv4s for Job IDs; no explicit authentication is needed.
+- Q: How do we prevent spoofed webhooks from attackers? → A: Validate the incoming payload using GitHub's `x-hub-signature-256` HMAC header.
+- Q: How should the system handle OpenAI API failures? → A: Auto-retry up to 3 times via BullMQ, then fallback to returning Docker output with an 'AI Review Unavailable' indicator.
+- Q: What is the TTL for cached AI reviews? → A: 7-day TTL to balance memory conservation and API cost savings.
+- Q: What is the hard execution timeout for Docker containers? → A: 10 seconds.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Result Caching (Priority: P1)
@@ -54,7 +63,7 @@ Clients connecting via WebSockets receive instantaneous state transition events 
 **Independent Test**: Can be tested via a Socket.io/WebSocket test client visually observing `job_started` and `job_finished` events in real-time.
 
 **Acceptance Scenarios**:
-1. **Given** an active Socket connection listening to events for `job_123`, **When** the worker finishes processing, **Then** a `completed` event is emitted containing the output and AI review to that client.
+1. **Given** an active Socket connection listening to events for an unguessable UUIDv4 `job_id`, **When** the worker finishes processing, **Then** a `completed` event is emitted containing the output and AI review to that client.
 
 ---
 
@@ -68,15 +77,20 @@ Repository admins can configure a GitHub webhook that automatically sends PR dat
 **Acceptance Scenarios**:
 1. **Given** a valid GitHub incoming Webhook payload, **When** a PR is opened/synchronized, **Then** the code is queued, and the resulting AI review is posted back to the PR URL using the GitHub API.
 
+### Edge Cases
+
+- **Container Timeout**: If the user-submitted code runs longer than 10 seconds (e.g., due to an infinite loop), the worker MUST forcefully kill the Docker container and return a "Timeout Execution Error", bypassing the AI review entirely.
+- **OpenAI API Failure**: If the OpenAI API times out or fails (e.g., rate limits) after Docker execution has already succeeded, the worker MUST use BullMQ's built-in retry mechanism to attempt the AI analysis up to 3 times. If all retries fail, the job MUST complete successfully (not fail) and return the Docker execution output to the user indicating "AI Review Unavailable" in the result.
+
 ## Requirements *(mandatory)*
 
 ### Functional Requirements
 
 - **FR-001**: System MUST provide a `GET /status/:jobId` endpoint returning accurate state logic derived from BullMQ.
-- **FR-002**: System MUST hash incoming code + language combinations with `SHA-256` and query a Redis cache prior to queueing.
+- **FR-002**: System MUST hash incoming code + language combinations with `SHA-256` and store/query a Redis cache with a strict 7-day expiration (TTL) prior to queueing.
 - **FR-003**: System MUST accept a `language` parameter on `/submit` (supported values: `python`, `node`, `go`).
 - **FR-004**: System MUST emit WebSocket events mapping to BullMQ's global status transitions.
-- **FR-005**: System MUST expose a `POST /webhook/github` endpoint capable of processing `pull_request` types.
+- **FR-005**: System MUST expose a `POST /webhook/github` endpoint that strictly validates the `x-hub-signature-256` HMAC header against a configured webhook secret before processing `pull_request` payloads.
 - **FR-006**: System MUST securely use a GitHub PAT (Personal Access Token) from `.env` to communicate with the GitHub API.
 
 ### Key Entities

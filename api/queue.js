@@ -20,4 +20,4 @@ setInterval(async () => {
   }
 }, 10000);
 
-module.exports = { codeQueue };
+module.exports = { codeQueue, connection };

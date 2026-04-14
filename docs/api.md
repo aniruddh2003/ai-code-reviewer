@@ -2,7 +2,7 @@
 
 ## POST /submit
 
-Submit code for execution
+Submit code for execution. Identical code + language pairs are cached via Redis for instant resolution bypassing the AI queue.
 
 ### Request
 
@@ -16,35 +16,64 @@ Submit code for execution
 **Supported languages:**
 
 - `python` - Python 3.10
-- `javascript` - Node.js 18+
-- `cpp` - C++ (GCC 12, compiled and executed)
+- `node` or `javascript` - Node.js 18+
+- `go` - Golang 1.20
 
 ### Response
 
 ```json
 {
-  "jobId": "1",
-  "status": "queued"
+  "jobId": "1a2b3c4d-...",
+  "status": "queued",
+  "cached": false
 }
 ```
+*Note: If `cached: true`, status will be `completed` instantly.*
 
 ---
 
 ## GET /status/:id
 
-Get job status
+Get job status.
 
 ### Response
 
 ```json
 {
-  "state": "completed",
+  "id": "1a2b3c4d-...",
+  "status": "completed",
   "result": {
     "output": "Hello\n",
     "aiFeedback": "..."
   }
 }
 ```
+
+---
+
+## POST /webhook/github
+
+Target payload endpoint for GitHub Pull Request automation. Automatically runs code found in PRs and natively posts an AI review comment back to the GitHub PR.
+
+### Request Headers
+- `x-hub-signature-256`: Requires valid HMAC SHA256 hashed signature matching your deployment's `GITHUB_WEBHOOK_SECRET`.
+
+### Response
+```json
+{
+  "message": "Accepted GitHub Webhook",
+  "jobId": "..."
+}
+```
+
+---
+
+## 🔌 WebSocket (Socket.io)
+
+Clients can optionally connect via a WebSockets proxy to automatically receive pushed updates, removing the need to poll `/status/:id`.
+
+**Events Emitted:**
+- `job_update` - Payload: `{ jobId, status: "active" | "completed" | "failed", result? }`
 
 ---
 
