@@ -26,27 +26,51 @@ const worker = new Worker(
     workerActive.inc({ queue_name: "code-execution" });
 
     try {
-      const { code, language, cacheKey, githubCommentUrl } = job.data;
+      const { code, language, testCases, cacheKey, githubCommentUrl } = job.data;
 
-      const output = await runInDocker(code, language);
+      let result = {
+        output: "",
+        testResults: null,
+        allPassed: true,
+        aiFeedback: ""
+      };
+
+      if (testCases && Array.isArray(testCases) && testCases.length > 0) {
+        // Multi-test validation mode
+        result.testResults = [];
+        for (const tc of testCases) {
+          const actual = await runInDocker(code, language, tc.input || "");
+          const status = actual.trim() === (tc.expected || "").trim() ? "PASS" : "FAIL";
+          
+          if (status === "FAIL") result.allPassed = false;
+          
+          result.testResults.push({
+            name: tc.name || "Unnamed Test",
+            status,
+            actual,
+            expected: tc.expected
+          });
+        }
+        result.output = result.allPassed ? "All tests passed" : "Some tests failed";
+      } else {
+        // Legacy single-run mode
+        const output = await runInDocker(code, language);
+        result.output = output;
+      }
       
       let aiFeedback;
       try {
-        aiFeedback = await reviewCode(code);
+        // Pass the results to the AI reviewer
+        aiFeedback = await reviewCode(code, result);
       } catch (err) {
         if (job.attemptsMade === job.opts.attempts) {
-          // Final attempt failed, gracefully return without marking job as failed
           aiFeedback = "AI Review Unavailable";
         } else {
-          // Let it bubble up so BullMQ built-in retries pick it up
           throw err;
         }
       }
 
-      const result = {
-        output,
-        aiFeedback,
-      };
+      result.aiFeedback = aiFeedback;
 
       // T004: Save to cache if we have a cacheKey
       if (cacheKey) {

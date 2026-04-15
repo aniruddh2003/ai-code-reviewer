@@ -1,27 +1,205 @@
 {
   "001-core-enhancements": {
-    "Phase 1: Setup (Shared Infrastructure)": { "number": 2, "id": "I_kwDOSAc2Ws7-JZ0L" },
-    "Phase 2: Foundational (Blocking Prerequisites)": { "number": 3, "id": "I_kwDOSAc2Ws7-JZ0X" },
-    "Phase 3: User Story 1 - Result Caching (Priority: P1) 🎯 MVP": { "number": 4, "id": "I_kwDOSAc2Ws7-JZ0h" },
-    "Phase 4: User Story 2 - Job Status Polling API (Priority: P1)": { "number": 5, "id": "I_kwDOSAc2Ws7-JZ0r" },
-    "Phase 5: User Story 3 - Multi-Language Code Support (Priority: P2)": { "number": 6, "id": "I_kwDOSAc2Ws7-JZ01" },
-    "Phase 6: User Story 4 - Real-Time WebSocket Notifications (Priority: P2)": { "number": 7, "id": "I_kwDOSAc2Ws7-JZ0-" },
-    "Phase 7: User Story 5 - GitHub PR Webhook Integration (Priority: P3)": { "number": 8, "id": "I_kwDOSAc2Ws7-JZ1I" },
-    "Phase 8: Polish & Cross-Cutting Concerns": { "number": 9, "id": "I_kwDOSAc2Ws7-JZ1S" },
-    "T001": { "number": 11, "id": "I_kwDOSAc2Ws7-JZ0v", "linked": true },
-    "T002": { "number": 12, "id": "I_kwDOSAc2Ws7-JZ1u", "linked": true },
-    "T003": { "number": 13, "id": "I_kwDOSAc2Ws7-JZ2i", "linked": true },
-    "T004": { "number": 14, "id": "I_kwDOSAc2Ws7-JZ3e", "linked": true },
-    "T005": { "number": 15, "id": "I_kwDOSAc2Ws7-JZ4g", "linked": true },
-    "T006": { "number": 16, "id": "I_kwDOSAc2Ws7-JZ5Z", "linked": true },
-    "T007": { "number": 17, "id": "I_kwDOSAc2Ws7-JZ6N", "linked": true },
-    "T008": { "number": 18, "id": "I_kwDOSAc2Ws7-JZ7W", "linked": true },
-    "T009": { "number": 19, "id": "I_kwDOSAc2Ws7-JZ8I", "linked": true },
-    "T010": { "number": 20, "id": "I_kwDOSAc2Ws7-JZ9C", "linked": true },
-    "T011": { "number": 21, "id": "I_kwDOSAc2Ws7-JZ-L", "linked": true },
-    "T012": { "number": 22, "id": "I_kwDOSAc2Ws7-JZ-s", "linked": true },
-    "T013": { "number": 23, "id": "I_kwDOSAc2Ws7-JZ_q", "linked": true },
-    "T014": { "number": 24, "id": "I_kwDOSAc2Ws7-JaAi", "linked": true },
-    "T015": { "number": 25, "id": "I_kwDOSAc2Ws7-JaBi", "linked": true }
+    "Phase 1: Setup (Shared Infrastructure)": {
+      "number": 2,
+      "id": "I_kwDOSAc2Ws7-JZ0L"
+    },
+    "Phase 2: Foundational (Blocking Prerequisites)": {
+      "number": 3,
+      "id": "I_kwDOSAc2Ws7-JZ0X"
+    },
+    "Phase 3: User Story 1 - Result Caching (Priority: P1) 🎯 MVP": {
+      "number": 4,
+      "id": "I_kwDOSAc2Ws7-JZ0h"
+    },
+    "Phase 4: User Story 2 - Job Status Polling API (Priority: P1)": {
+      "number": 5,
+      "id": "I_kwDOSAc2Ws7-JZ0r"
+    },
+    "Phase 5: User Story 3 - Multi-Language Code Support (Priority: P2)": {
+      "number": 6,
+      "id": "I_kwDOSAc2Ws7-JZ01"
+    },
+    "Phase 6: User Story 4 - Real-Time WebSocket Notifications (Priority: P2)": {
+      "number": 7,
+      "id": "I_kwDOSAc2Ws7-JZ0-"
+    },
+    "Phase 7: User Story 5 - GitHub PR Webhook Integration (Priority: P3)": {
+      "number": 8,
+      "id": "I_kwDOSAc2Ws7-JZ1I"
+    },
+    "Phase 8: Polish & Cross-Cutting Concerns": {
+      "number": 9,
+      "id": "I_kwDOSAc2Ws7-JZ1S"
+    },
+    "T001": {
+      "number": 11,
+      "id": "I_kwDOSAc2Ws7-JZ0v",
+      "linked": true
+    },
+    "T002": {
+      "number": 12,
+      "id": "I_kwDOSAc2Ws7-JZ1u",
+      "linked": true
+    },
+    "T003": {
+      "number": 13,
+      "id": "I_kwDOSAc2Ws7-JZ2i",
+      "linked": true
+    },
+    "T004": {
+      "number": 14,
+      "id": "I_kwDOSAc2Ws7-JZ3e",
+      "linked": true
+    },
+    "T005": {
+      "number": 15,
+      "id": "I_kwDOSAc2Ws7-JZ4g",
+      "linked": true
+    },
+    "T006": {
+      "number": 16,
+      "id": "I_kwDOSAc2Ws7-JZ5Z",
+      "linked": true
+    },
+    "T007": {
+      "number": 17,
+      "id": "I_kwDOSAc2Ws7-JZ6N",
+      "linked": true
+    },
+    "T008": {
+      "number": 18,
+      "id": "I_kwDOSAc2Ws7-JZ7W",
+      "linked": true
+    },
+    "T009": {
+      "number": 19,
+      "id": "I_kwDOSAc2Ws7-JZ8I",
+      "linked": true
+    },
+    "T010": {
+      "number": 20,
+      "id": "I_kwDOSAc2Ws7-JZ9C",
+      "linked": true
+    },
+    "T011": {
+      "number": 21,
+      "id": "I_kwDOSAc2Ws7-JZ-L",
+      "linked": true
+    },
+    "T012": {
+      "number": 22,
+      "id": "I_kwDOSAc2Ws7-JZ-s",
+      "linked": true
+    },
+    "T013": {
+      "number": 23,
+      "id": "I_kwDOSAc2Ws7-JZ_q",
+      "linked": true
+    },
+    "T014": {
+      "number": 24,
+      "id": "I_kwDOSAc2Ws7-JaAi",
+      "linked": true
+    },
+    "T015": {
+      "number": 25,
+      "id": "I_kwDOSAc2Ws7-JaBi",
+      "linked": true
+    }
+  },
+  "002-test-case-validation": {
+    "Phase 1: Setup (Shared Infrastructure)": {
+      "number": 26,
+      "id": "I_kwDOSAc2Ws7-g5PO"
+    },
+    "T001": {
+      "number": 27,
+      "id": 4270036188
+    },
+    "T002": {
+      "number": 28,
+      "id": 4270036389
+    },
+    "Phase 2: Foundational (Blocking Prerequisites)": {
+      "number": 29,
+      "id": "I_kwDOSAc2Ws7-g5cC"
+    },
+    "T003": {
+      "number": 30,
+      "id": 4270036978
+    },
+    "T004": {
+      "number": 31,
+      "id": 4270037204
+    },
+    "T005": {
+      "number": 32,
+      "id": 4270037408
+    },
+    "T006": {
+      "number": 33,
+      "id": 4270037638
+    },
+    "Phase 3: User Story 1 - Robust Functional Verification via STDIN (Priority: P1) 🎯 MVP": {
+      "number": 34,
+      "id": "I_kwDOSAc2Ws7-g5vF"
+    },
+    "T007": {
+      "number": 35,
+      "id": 4270038150
+    },
+    "T008": {
+      "number": 36,
+      "id": 4270038392
+    },
+    "T009": {
+      "number": 37,
+      "id": 4270038646
+    },
+    "T010": {
+      "number": 38,
+      "id": 4270038878
+    },
+    "Phase 4: User Story 2 - Insightful Failure Reasoning (Priority: P1)": {
+      "number": 39,
+      "id": "I_kwDOSAc2Ws7-g6Cw"
+    },
+    "T011": {
+      "number": 40,
+      "id": 4270039390
+    },
+    "T012": {
+      "number": 41,
+      "id": 4270039625
+    },
+    "T013": {
+      "number": 42,
+      "id": 4270039864
+    },
+    "Phase 5: User Story 3 - Asymptotic Optimization Advice (Priority: P2)": {
+      "number": 43,
+      "id": "I_kwDOSAc2Ws7-g6SK"
+    },
+    "T014": {
+      "number": 44,
+      "id": 4270040433
+    },
+    "T015": {
+      "number": 45,
+      "id": 4270040613
+    },
+    "T016": {
+      "number": 46,
+      "id": 4270040853
+    },
+    "T017": {
+      "number": 47,
+      "id": 4270041068
+    },
+    "T018": {
+      "number": 48,
+      "id": 4270041335
+    }
   }
 }

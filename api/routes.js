@@ -6,14 +6,15 @@ const { codeQueue, connection: redis } = require("./queue");
 const router = express.Router();
 
 router.post("/submit", async (req, res) => {
-  const { code, language } = req.body;
+  const { code, language, testCases } = req.body;
 
   if (!code || !language) {
     return res.status(400).json({ error: "Missing fields" });
   }
 
-  // Generate deterministic internal cache key
-  const hash = crypto.createHash("sha256").update(code + language).digest("hex");
+  // Generate deterministic internal cache key including testCases if present
+  const testCasesString = testCases ? JSON.stringify(testCases) : "";
+  const hash = crypto.createHash("sha256").update(code + language + testCasesString).digest("hex");
   const cacheKey = `cache:${hash}`;
 
   const cachedData = await redis.get(cacheKey);
@@ -33,6 +34,7 @@ router.post("/submit", async (req, res) => {
   const job = await codeQueue.add("run-code", {
     code,
     language,
+    testCases, // Pass test cases to worker
     cacheKey,
   }, {
     attempts: 3,
