@@ -4,9 +4,8 @@ const path = require("path");
 const { v4: uuidv4 } = require("uuid");
 
 async function runInDocker(code, language, stdin = "") {
-  fs.appendFileSync("/tmp/debug.log", `--- START runInDocker (${language}) ---\n`);
   const id = uuidv4();
-  const tempDir = `/tmp/code-${id}`;
+  const tempDir = `/shared/code-${id}`;
 
   fs.mkdirSync(tempDir, { recursive: true });
 
@@ -14,32 +13,37 @@ async function runInDocker(code, language, stdin = "") {
     tempDir,
     language === "node" || language === "javascript"
       ? "script.js"
-      : language === "go"
-        ? "script.go"
+      : language === "cpp" || language === "c++"
+        ? "script.cpp"
         : "script.py",
   );
-  
-  console.log(`📝 Writing code to ${filePath}...`);
-  fs.writeFileSync(filePath, code);
-  console.log(`📂 Directory contents:`, fs.readdirSync(tempDir));
 
-  let dockerArgs = ["run", "--rm", "-i", "-v", `${tempDir}:/app`, "--memory=100m", "--cpus=0.5"];
-  
-  if (language === "python") {
-    dockerArgs.push("python-runner", "python", "/app/script.py");
-  } else if (language === "node" || language === "javascript") {
-    dockerArgs.push("js-runner", "node", "/app/script.js");
+  fs.writeFileSync(filePath, code);
+
+  let memoryLimit = "100m";
+  if (language === "cpp" || language === "c++") {
+    memoryLimit = "200m";
   } else if (language === "go") {
-    dockerArgs.push("-w", "/app", "golang:1.20-alpine", "go", "run", "script.go");
+    memoryLimit = "256m";
+  }
+
+  let dockerArgs = ["run", "--rm", "-i", "-v", "code-exec-share:/shared", `--memory=${memoryLimit}`, "--cpus=0.5"];
+
+
+  if (language === "python") {
+    dockerArgs.push("python-runner", "python", `/shared/code-${id}/script.py`);
+  } else if (language === "node" || language === "javascript") {
+    dockerArgs.push("js-runner", "node", `/shared/code-${id}/script.js`);
+  } else if (language === "cpp" || language === "c++") {
+    dockerArgs.push("cpp-runner", "sh", "-c", `g++ -o /shared/code-${id}/prog /shared/code-${id}/script.cpp && /shared/code-${id}/prog`);
   } else {
-    // fs.rmSync(tempDir, { recursive: true, force: true }); // Debug: Keep it
+    fs.rmSync(tempDir, { recursive: true, force: true });
     return "Unsupported language";
   }
 
   return new Promise((resolve) => {
-    console.log(`🚀 Spawning docker with args:`, dockerArgs);
-    const child = spawn("docker", dockerArgs, { timeout: 10000 });
-    
+    const child = spawn("docker", dockerArgs, { timeout: 30000 });
+
     let stdout = "";
     let stderr = "";
 
@@ -66,7 +70,7 @@ async function runInDocker(code, language, stdin = "") {
       if (code === 0) {
         resolve(stdout);
       } else {
-        resolve(stderr || `Process exited with code ${code}`);
+        resolve(stderr || stdout || `Process exited with code ${code}`);
       }
     });
 
@@ -76,7 +80,7 @@ async function runInDocker(code, language, stdin = "") {
         child.kill();
         resolve("Timeout Execution Error");
       }
-    }, 11000);
+    }, 31000);
   });
 }
 
