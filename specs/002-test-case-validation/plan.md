@@ -4,40 +4,31 @@
 
 ## Summary
 
-Migration of the execution engine to a multi-test model with STDIN support and specialized AI feedback logic for failure reasoning and asymptotic optimization.
+Migration of the execution engine to a multi-test model with "LeetCode-style" function abstraction and specialized AI feedback logic.
 
 ## Technical Context
 
-- **Language/Version**: Node.js v18+
-- **Primary Dependencies**: BullMQ, Redis, Docker, OpenAI API
-- **Project Type**: Web API + Background Worker
-- **Performance Goals**: Execution and review completed in < 30s for up to 5 test cases.
-- **Constraints**: 10s timeout per test case; < 200MB memory per container.
-
-## Constitution Check
-
-| Principle | Status | Implementation Detail |
-| :--- | :---: | :--- |
-| **Asynchronous By Default** | ✅ | Continues using BullMQ for all steps. |
-| **Containerized Isolation** | ✅ | Each test case runs in an isolated Docker container. |
-| **AI-Enhanced Reviews** | ✅ | AI reviews tailored based on pass/fail outcomes. |
+- **Primary Dependencies**: Docker, BullMQ, nlohmann/json (C++), Node.js v18
+- **Architecture**: The 'Hidden Judge' model. User code is injected into a language-specific wrapper that handles argument parsing and result capture.
 
 ## Proposed Changes
 
 ### Phase 2: Execution Engine (Docker)
-Modify `worker/dockerRunner.js` to support interactive stdin via shell piping.
+- Implemented `wrapCode` logic in `dockerRunner.js`.
+- Added **Smart Judge** for Python, Node, and C++.
+- C++ Judge uses variadic templates for auto-detecting user function signatures.
 
 ### Phase 3: Worker Orchestration & AI
-Update `worker/worker.js` and `worker/aiReviewer.js` for result aggregation and dynamic prompting.
+- `worker.js` handles the test loop and success/failure branching.
+- `aiReviewer.js` generates "Diagnosis" vs "Optimization" prompts.
 
 ## Project Structure
 
 ```text
 api/
-├── routes.js            # Submit endpoint update
-└── queue.js             # Task data expansion
+├── routes.js            # Submit endpoint
 worker/
-├── dockerRunner.js       # Stdin support
-├── worker.js            # Multi-test loop
-└── aiReviewer.js        # Dynamic prompts
+├── dockerRunner.js       # The 'Hidden Judge' Wrapper logic
+├── worker.js            # Multi-test orchestration
+└── aiReviewer.js        # Success/Failure branching prompts
 ```

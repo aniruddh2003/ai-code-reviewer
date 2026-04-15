@@ -24,12 +24,6 @@ services:
       dockerfile: cpp.Dockerfile
     image: cpp-runner
 
-  go-runner:
-    build:
-      context: ./docker
-      dockerfile: go.Dockerfile
-    image: go-runner
-
   api:
     build:
       context: .

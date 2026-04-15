@@ -4,10 +4,9 @@ async function runMultilingualVerification() {
       name: "Python",
       payload: {
         language: "python",
-        code: "import sys\nfor line in sys.stdin:\n    print(int(line.strip()) * 2)",
+        code: "def compute_result(n, arr):\n    return sum(arr) - n",
         testCases: [
-          { name: "double 5", input: "5", expected: "10\n" },
-          { name: "double 10", input: "10", expected: "20\n" }
+          { name: "leetcode style python", input: "14\n[1, 2, 3, 4, 5, 6, 7]", expected: "14\n" }
         ]
       }
     },
@@ -15,24 +14,24 @@ async function runMultilingualVerification() {
       name: "Node.js",
       payload: {
         language: "node",
-        code: "const fs = require('fs');\nconst input = fs.readFileSync(0, 'utf8').trim();\nconsole.log(parseInt(input) * 3);",
-        testCases: [{ name: "triple 5", input: "5", expected: "15\n" }]
+        code: "function computeResult(n, arr) {\n    return arr.reduce((sum, num) => sum + num, 0) - n;\n}",
+        testCases: [{ name: "leetcode style node", input: "14\n[1, 2, 3, 4, 5, 6, 7]", expected: "14\n" }]
       }
     },
     {
-      name: "Go",
-      payload: {
-        language: "go",
-        code: "package main\n\nimport \"fmt\"\n\nfunc main() {\n\tfmt.Println(\"Hello, World!\")\n}",
-        testCases: [{ name: "hello", input: "", expected: "Hello, World!\n" }]
-      }
-    },
-    {
-      name: "C++",
+      name: "C++ (Simple)",
       payload: {
         language: "cpp",
-        code: "#include <iostream>\nusing namespace std;\nint main() {\n  int n;\n  if (cin >> n) {\n    cout << n * 5 << endl;\n  }\n  return 0;\n}",
-        testCases: [{ name: "quintuple 5", input: "5", expected: "25\n" }]
+        code: "int solution(int n, vector<int> arr) {\n  int sum = 0;\n  for (int x : arr) sum += x;\n  return sum - n;\n}",
+        testCases: [{ name: "simple cpp", input: "14\n[1, 2, 3, 4, 5, 6, 7]", expected: "14\n" }]
+      }
+    },
+    {
+      name: "C++ (Complex)",
+      payload: {
+        language: "cpp",
+        code: "string solution(int number,vector<vector<int>> matrix) {\n  int diagSum = 0;\n  for(int i=0; i<matrix.size(); ++i) diagSum += matrix[i][i];\n  return \"Substracted Diagonal Sum: \" + to_string(number - diagSum);\n}",
+        testCases: [{ name: "2D vector cpp", input: "50\n[[10, 20], [30, 40]]", expected: "\"Substracted Diagonal Sum: 0\"\n" }]
       }
     }
   ];
