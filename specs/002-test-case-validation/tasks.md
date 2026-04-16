@@ -1,23 +1,32 @@
-# Tasks: Automated Test Case Validation (Feature 002)
+# Tasks: Automated Test Case Validation (Harden)
 
-- [x] **Phase 1: Basic Stdin Support**
-    - [x] Update `worker/dockerRunner.js` to handle piped input
-    - [x] Fix child process stdin termination to prevent hanging
-    - [x] Verify multi-line input handling
+This trace reflects the actual implementation journey for Feature 002.
 
-- [x] **Phase 2: LeetCode-Style Abstraction (The Smart Judge)**
-    - [x] Implement Python Judge (JSON parsing + function call)
-    - [x] Implement Node.js Judge (JSON parsing + function call)
-    - [x] Implement C++ Smart Judge (Variadic templates + nlohmann/json)
-    - [x] Support for advanced types (2D/3D vectors, Strings, Bool) in C++
+- [x] **Phase 1: Foundation (Core Engine)**
+    - [x] Refactor `dockerRunner.js` to extract wrapping logic into `getWrappedCode`.
+    - [x] Implement initial Python 'Hidden Judge' with JSON parsing.
+    - [x] Implement initial Node.js 'Hidden Judge' with `fs.readFileSync(0)`.
+    - [x] Update `worker/worker.js` to handle the multi-test array loop.
 
-- [x] **Phase 3: Worker & AI Orchestration**
-    - [x] Update `worker/worker.js` with multi-test loop and result aggregation
-    - [x] Update `worker/aiReviewer.js` with Success/Failure prompt branching
-    - [x] Implement "Diagnosis Mode" for failures
-    - [x] Implement "Optimization Mode" for passed tests
+- [x] **Phase 2: The Smart C++ Judge**
+    - [x] Integrate `nlohmann/json` into `cpp.Dockerfile`.
+    - [x] Implement Variadic Template Judge in C++17.
+    - [x] Support recursive JSON-to-vector mapping (3D vectors/strings).
+    - [x] Handle variadic argument count discovery via `execute(solution)`.
 
-- [x] **Phase 4: Verification & Docs**
-    - [x] Create `verify_multilingual.js` test suite
-    - [x] Update `spec.md` and `plan.md` to reflect the final architecture
-    - [x] Generate final Validation Report
+- [x] **Phase 3: Robustness & DX**
+    - [x] Move all judge boilerplates to the `resources/` directory.
+    - [x] Implement template caching in `dockerRunner.js`.
+    - [x] Setup Jest and implement `worker/dockerRunner.test.js` (100% coverage).
+    - [x] Update `package.json` with `test` script.
+
+- [x] **Phase 4: AI Logic & Verification**
+    - [x] Refactor `aiReviewer.js` for Success/Failure prompt branching.
+    - [x] Implement "Diagnosis" and "Optimization" instructions.
+    - [x] Create `verify_multilingual.js` and implement 13 cross-language tests.
+    - [x] Verify Dijkstra algorithm support for Python, Node, and C++.
+
+- [x] **Phase 5: Documentation Hardening**
+    - [x] Synchronize `spec.md` with finalized functional requirements.
+    - [x] Synchronize `plan.md` with 'Hidden Judge' architecture.
+    - [x] Finalize `tasks.md` completion trace.
