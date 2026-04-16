@@ -4,7 +4,7 @@ async function runMultilingualVerification() {
       name: "Python",
       payload: {
         language: "python",
-        code: "def compute_result(n, arr):\n    return sum(arr) - n",
+        code: "def solution(n, arr):\n    return sum(arr) - n",
         testCases: [
           { name: "leetcode style python", input: "14\n[1, 2, 3, 4, 5, 6, 7]", expected: "14\n" }
         ]
@@ -14,7 +14,7 @@ async function runMultilingualVerification() {
       name: "Node.js",
       payload: {
         language: "node",
-        code: "function computeResult(n, arr) {\n    return arr.reduce((sum, num) => sum + num, 0) - n;\n}",
+        code: "function solution(n, arr) {\n    return arr.reduce((sum, num) => sum + num, 0) - n;\n}",
         testCases: [{ name: "leetcode style node", input: "14\n[1, 2, 3, 4, 5, 6, 7]", expected: "14\n" }]
       }
     },
