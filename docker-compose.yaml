@@ -45,4 +45,8 @@ services:
       - redis
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-      - /tmp:/tmp
+      - code-exec-share:/shared
+
+volumes:
+  code-exec-share:
+    name: code-exec-share

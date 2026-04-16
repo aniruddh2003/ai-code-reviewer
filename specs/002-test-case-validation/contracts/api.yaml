@@ -1,0 +1,43 @@
+openapi: 3.0.0
+info:
+  title: AI Code Reviewer API
+  version: 1.1.0
+paths:
+  /submit:
+    post:
+      summary: Submit code for review and optional test validation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                code:
+                  type: string
+                language:
+                  type: string
+                  enum: [python, node, javascript, go]
+                testCases:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      name:
+                        type: string
+                      input:
+                        type: string
+                      expected:
+                        type: string
+      responses:
+        '200':
+          description: Job enqueued
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  jobId:
+                    type: string
+                  status:
+                    type: string
