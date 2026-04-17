@@ -5,7 +5,7 @@ import { db, auth, isDemoMode } from "@/firebase/config"
 import { Problem } from "@/types/problem"
 import { Submission } from "@/types/submission"
 import { Button } from "@/components/ui/button"
-import { ChevronLeft, Play, Send, Settings, BookOpen, Code2, Loader2, CheckCircle2, XCircle, AlertCircle, Sparkles, ChevronDown, Tag, Zap, Clock, BarChart2 } from "lucide-react"
+import { ChevronLeft, Play, Send, Settings, BookOpen, Code2, Loader2, CheckCircle2, XCircle, AlertCircle, Sparkles, ChevronDown, Tag, Zap, Clock, BarChart2, Lightbulb } from "lucide-react"
 import Editor from "@monaco-editor/react"
 import { useThemeStore } from "@/stores/themeStore"
 import { useAuthStore } from "@/stores/authStore"
@@ -34,7 +34,14 @@ export const ProblemDetail: React.FC = () => {
   const [expandedComplexity, setExpandedComplexity] = useState(false)
   const [expandedTags, setExpandedTags] = useState(false)
   const [showConsole, setShowConsole] = useState(false)
+  const [consoleTab, setConsoleTab] = useState<"cases" | "result">("cases")
+  const [hasRunResults, setHasRunResults] = useState(false)
+  const [hasSubmissionResult, setHasSubmissionResult] = useState(false)
   const [showDescription, setShowDescription] = useState(true)
+  // Hint feature
+  const [showHint, setShowHint] = useState(false)
+  const [hintLoading, setHintLoading] = useState(false)
+  const [hints, setHints] = useState<{ level: string; text: string }[]>([])
 
   useEffect(() => {
     const fetchProblem = async () => {
@@ -131,6 +138,7 @@ export const ProblemDetail: React.FC = () => {
     setSubmitting(true)
     setShowResults(true)
     setShowConsole(true)
+    setConsoleTab("result")
 
     if (isDemoMode) {
       // Simulation for Demo Mode
@@ -155,6 +163,7 @@ export const ProblemDetail: React.FC = () => {
           }
         } as Submission)
         setSubmitting(false)
+        setHasSubmissionResult(true)
       }, 3000)
       return
     }
@@ -182,6 +191,75 @@ export const ProblemDetail: React.FC = () => {
     } catch (error) {
       console.error("Submission failed:", error)
       setSubmitting(false)
+    }
+  }
+
+  // Get AI Hint
+  const handleGetHint = async () => {
+    if (!problem) return
+    setShowHint(true)
+    setHintLoading(true)
+    setHints([])
+
+    const apiKey = import.meta.env.VITE_GEMINI_API_KEY
+
+    if (isDemoMode || !apiKey) {
+      // Mock hints for Demo Mode
+      setTimeout(() => {
+        setHints([
+          {
+            level: "Approach",
+            text: "Think about how you can avoid the O(n²) brute force. What if you could check for the complement in constant time?"
+          },
+          {
+            level: "Data Structure",
+            text: `Consider using a Hash Map. As you iterate through the array in ${language}, store each number and its index. For each new number, check if its complement (target - current) already exists in the map.`
+          },
+          {
+            level: "Implementation",
+            text: "You only need a single pass through the array. For each element, compute complement = target - nums[i], then check if it\'s already in your map before inserting nums[i]."
+          }
+        ])
+        setHintLoading(false)
+      }, 1800)
+      return
+    }
+
+    try {
+      const prompt = `You are a coding mentor helping a student solve a programming problem. Do NOT give away the solution.
+
+Problem: ${problem.title}
+Description: ${problem.description}
+Language: ${language}
+Student's current code:
+\`\`\`${language}
+${code || "(empty — student hasn't started yet)"}
+\`\`\`
+
+Provide exactly 3 progressive hints as a JSON array:
+[
+  { "level": "Approach", "text": "..." },
+  { "level": "Data Structure", "text": "..." },
+  { "level": "Implementation", "text": "..." }
+]
+Each hint should be 1-2 sentences. Return ONLY the JSON array, no markdown.`
+
+      const res = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+        }
+      )
+      const data = await res.json()
+      const raw = data.candidates?.[0]?.content?.parts?.[0]?.text || "[]"
+      const parsed = JSON.parse(raw.replace(/```json|```/g, "").trim())
+      setHints(parsed)
+    } catch {
+      setHints([{ level: "Error", text: "Could not fetch hints. Please check your API key or try again." }])
+    } finally {
+      setHintLoading(false)
     }
   }
 
@@ -226,7 +304,16 @@ export const ProblemDetail: React.FC = () => {
             </SelectContent>
           </Select>
 
-          <Button variant="outline" size="sm" className="h-9 gap-2" onClick={() => setShowConsole(true)}>
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-9 gap-2 border-amber-500/40 text-amber-500 hover:bg-amber-500/10 hover:text-amber-400"
+            onClick={handleGetHint}
+          >
+            <Lightbulb className="h-4 w-4" />
+            Hint
+          </Button>
+          <Button variant="outline" size="sm" className="h-9 gap-2" onClick={() => { setShowConsole(true); setConsoleTab("result"); setHasRunResults(true); }}>
             <Play className="h-4 w-4 fill-current" />
             Run
           </Button>
@@ -247,8 +334,8 @@ export const ProblemDetail: React.FC = () => {
       <div className="flex-1 flex gap-4 overflow-hidden relative">
         {/* Left: Description — collapsible */}
         <div
-          className="flex shrink-0 transition-all duration-300 ease-in-out relative"
-          style={{ width: showDescription ? "33.333%" : "2rem" }}
+          style={{ width: showDescription ? "50%" : "2rem" }}
+          className="shrink-0 flex flex-col h-full transition-all duration-300 ease-in-out relative"
         >
           {/* Toggle Strip */}
           <button
@@ -270,127 +357,121 @@ export const ProblemDetail: React.FC = () => {
 
           {/* Content */}
           <div
-            className="flex flex-col gap-4 overflow-y-auto overflow-x-hidden w-full pr-7"
+            className="flex-1 flex flex-col gap-5 overflow-y-auto overflow-x-hidden px-5 py-4"
             style={{ opacity: showDescription ? 1 : 0, pointerEvents: showDescription ? "auto" : "none", transition: "opacity 0.2s" }}
           >
-          <div className={cn(
-            "rounded-xl border p-5 backdrop-blur-sm min-h-full transition-colors flex flex-col gap-5",
-            theme === "dark" ? "border-border/40 bg-card/30" : "border-slate-200 bg-white shadow-sm"
-          )}>
-            {/* Title */}
-            <div>
-              <h2 className="text-lg font-bold tracking-tight mb-2">{problem.title}</h2>
-              {/* Metadata Bar */}
-              <div className={cn(
-                "flex flex-wrap items-center gap-x-3 gap-y-1 text-xs border-b pb-3",
-                theme === "dark" ? "border-white/10" : "border-slate-200"
+              {/* Title */}
+              <div>
+                <h2 className="text-lg font-bold tracking-tight mb-2">{problem.title}</h2>
+                {/* Metadata Bar */}
+                <div className={cn(
+                  "flex flex-wrap items-center gap-x-3 gap-y-1 text-xs border-b pb-3",
+                  theme === "dark" ? "border-white/10" : "border-slate-200"
+                )}>
+                  <span className={cn(
+                    "font-bold",
+                    problem.difficulty === "Easy" && "text-emerald-500",
+                    problem.difficulty === "Medium" && "text-amber-500",
+                    problem.difficulty === "Hard" && "text-rose-500"
+                  )}>{problem.difficulty}</span>
+                  {problem.accuracy && (
+                    <span className="text-muted-foreground">Accuracy: <span className="font-semibold text-foreground">{problem.accuracy}</span></span>
+                  )}
+                  {problem.submissions && (
+                    <span className="text-muted-foreground">Submissions: <span className="font-semibold text-foreground">{problem.submissions}</span></span>
+                  )}
+                  {problem.points && (
+                    <span className="text-muted-foreground">Points: <span className="font-semibold text-foreground">{problem.points}</span></span>
+                  )}
+                </div>
+              </div>
+
+              {/* Description Text */}
+              <p className={cn(
+                "text-sm leading-relaxed whitespace-pre-wrap",
+                theme === "dark" ? "text-muted-foreground" : "text-slate-600"
               )}>
-                <span className={cn(
-                  "font-bold",
-                  problem.difficulty === "Easy" && "text-emerald-500",
-                  problem.difficulty === "Medium" && "text-amber-500",
-                  problem.difficulty === "Hard" && "text-rose-500"
-                )}>{problem.difficulty}</span>
-                {problem.accuracy && (
-                  <span className="text-muted-foreground">Accuracy: <span className="font-semibold text-foreground">{problem.accuracy}</span></span>
-                )}
-                {problem.submissions && (
-                  <span className="text-muted-foreground">Submissions: <span className="font-semibold text-foreground">{problem.submissions}</span></span>
-                )}
-                {problem.points && (
-                  <span className="text-muted-foreground">Points: <span className="font-semibold text-foreground">{problem.points}</span></span>
-                )}
-              </div>
-            </div>
+                {problem.description}
+              </p>
 
-            {/* Description Text */}
-            <p className={cn(
-              "text-sm leading-relaxed whitespace-pre-wrap",
-              theme === "dark" ? "text-muted-foreground" : "text-slate-600"
-            )}>
-              {problem.description}
-            </p>
+              {/* Examples */}
+              {problem.examples && problem.examples.length > 0 && (
+                <div className="flex flex-col gap-3">
+                  <h4 className="text-sm font-bold">Examples:</h4>
+                  {problem.examples.map((ex, i) => (
+                    <div key={i} className={cn(
+                      "rounded-lg border p-3 text-xs font-mono space-y-1",
+                      theme === "dark" ? "border-white/10 bg-white/5" : "border-slate-200 bg-slate-50"
+                    )}>
+                      <div><span className="font-bold">Input:</span> <span className="text-muted-foreground">{ex.input}</span></div>
+                      <div><span className="font-bold">Output:</span> <span className="text-muted-foreground">{ex.output}</span></div>
+                      {ex.explanation && (
+                        <div className="font-sans"><span className="font-bold font-sans">Explanation:</span> <span className="text-muted-foreground">{ex.explanation}</span></div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
 
-            {/* Examples */}
-            {problem.examples && problem.examples.length > 0 && (
-              <div className="flex flex-col gap-3">
-                <h4 className="text-sm font-bold">Examples:</h4>
-                {problem.examples.map((ex, i) => (
-                  <div key={i} className={cn(
-                    "rounded-lg border p-3 text-xs font-mono space-y-1",
-                    theme === "dark" ? "border-white/10 bg-white/5" : "border-slate-200 bg-slate-50"
-                  )}>
-                    <div><span className="font-bold">Input:</span> <span className="text-muted-foreground">{ex.input}</span></div>
-                    <div><span className="font-bold">Output:</span> <span className="text-muted-foreground">{ex.output}</span></div>
-                    {ex.explanation && (
-                      <div className="font-sans"><span className="font-bold font-sans">Explanation:</span> <span className="text-muted-foreground">{ex.explanation}</span></div>
+              {/* Expected Complexity Accordion */}
+              {problem.expectedComplexity && (
+                <div className={cn("rounded-lg border", theme === "dark" ? "border-white/10" : "border-slate-200")}>
+                  <button
+                    type="button"
+                    className={cn(
+                      "w-full flex items-center justify-between px-4 py-3 text-sm font-bold transition-colors rounded-lg",
+                      theme === "dark" ? "hover:bg-white/5" : "hover:bg-slate-50"
                     )}
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {/* Expected Complexity Accordion */}
-            {problem.expectedComplexity && (
-              <div className={cn("rounded-lg border", theme === "dark" ? "border-white/10" : "border-slate-200")}>
-                <button
-                  type="button"
-                  className={cn(
-                    "w-full flex items-center justify-between px-4 py-3 text-sm font-bold transition-colors rounded-lg",
-                    theme === "dark" ? "hover:bg-white/5" : "hover:bg-slate-50"
+                    onClick={() => setExpandedComplexity(prev => !prev)}
+                  >
+                    <span className="flex items-center gap-2"><Zap className="h-3.5 w-3.5 text-amber-500" /> Expected Complexities</span>
+                    <ChevronDown
+                      className="h-4 w-4 text-muted-foreground transition-transform duration-200"
+                      style={{ transform: expandedComplexity ? "rotate(180deg)" : "rotate(0deg)" }}
+                    />
+                  </button>
+                  {expandedComplexity && (
+                    <div className={cn("px-4 pb-3 text-xs space-y-1 border-t", theme === "dark" ? "border-white/10 bg-white/5" : "border-slate-200 bg-slate-50")}>
+                      <div className="pt-2 flex items-center gap-2"><Clock className="h-3 w-3 text-muted-foreground" /> Time: <code className="font-mono font-bold">{problem.expectedComplexity.time}</code></div>
+                      <div className="flex items-center gap-2"><BarChart2 className="h-3 w-3 text-muted-foreground" /> Space: <code className="font-mono font-bold">{problem.expectedComplexity.space}</code></div>
+                    </div>
                   )}
-                  onClick={() => setExpandedComplexity(prev => !prev)}
-                >
-                  <span className="flex items-center gap-2"><Zap className="h-3.5 w-3.5 text-amber-500" /> Expected Complexities</span>
-                  <ChevronDown
-                    className="h-4 w-4 text-muted-foreground transition-transform duration-200"
-                    style={{ transform: expandedComplexity ? "rotate(180deg)" : "rotate(0deg)" }}
-                  />
-                </button>
-                {expandedComplexity && (
-                  <div className={cn("px-4 pb-3 text-xs space-y-1 border-t", theme === "dark" ? "border-white/10 bg-white/5" : "border-slate-200 bg-slate-50")}>
-                    <div className="pt-2 flex items-center gap-2"><Clock className="h-3 w-3 text-muted-foreground" /> Time: <code className="font-mono font-bold">{problem.expectedComplexity.time}</code></div>
-                    <div className="flex items-center gap-2"><BarChart2 className="h-3 w-3 text-muted-foreground" /> Space: <code className="font-mono font-bold">{problem.expectedComplexity.space}</code></div>
-                  </div>
-                )}
-              </div>
-            )}
+                </div>
+              )}
 
-            {/* Topic Tags Accordion */}
-            {problem.tags && problem.tags.length > 0 && (
-              <div className={cn("rounded-lg border", theme === "dark" ? "border-white/10" : "border-slate-200")}>
-                <button
-                  type="button"
-                  className={cn(
-                    "w-full flex items-center justify-between px-4 py-3 text-sm font-bold transition-colors rounded-lg",
-                    theme === "dark" ? "hover:bg-white/5" : "hover:bg-slate-50"
+              {/* Topic Tags Accordion */}
+              {problem.tags && problem.tags.length > 0 && (
+                <div className={cn("rounded-lg border", theme === "dark" ? "border-white/10" : "border-slate-200")}>
+                  <button
+                    type="button"
+                    className={cn(
+                      "w-full flex items-center justify-between px-4 py-3 text-sm font-bold transition-colors rounded-lg",
+                      theme === "dark" ? "hover:bg-white/5" : "hover:bg-slate-50"
+                    )}
+                    onClick={() => setExpandedTags(prev => !prev)}
+                  >
+                    <span className="flex items-center gap-2"><Tag className="h-3.5 w-3.5 text-blue-500" /> Topic Tags</span>
+                    <ChevronDown
+                      className="h-4 w-4 text-muted-foreground transition-transform duration-200"
+                      style={{ transform: expandedTags ? "rotate(180deg)" : "rotate(0deg)" }}
+                    />
+                  </button>
+                  {expandedTags && (
+                    <div className={cn("px-4 pb-3 pt-2 flex flex-wrap gap-2 border-t", theme === "dark" ? "border-white/10 bg-white/5" : "border-slate-200 bg-slate-50")}>
+                      {problem.tags.map((tag) => (
+                        <span key={tag} className={cn(
+                          "px-2.5 py-1 rounded-full text-xs font-semibold",
+                          theme === "dark" ? "bg-primary/10 text-primary" : "bg-blue-50 text-blue-700 border border-blue-200"
+                        )}>{tag}</span>
+                      ))}
+                    </div>
                   )}
-                  onClick={() => setExpandedTags(prev => !prev)}
-                >
-                  <span className="flex items-center gap-2"><Tag className="h-3.5 w-3.5 text-blue-500" /> Topic Tags</span>
-                  <ChevronDown
-                    className="h-4 w-4 text-muted-foreground transition-transform duration-200"
-                    style={{ transform: expandedTags ? "rotate(180deg)" : "rotate(0deg)" }}
-                  />
-                </button>
-                {expandedTags && (
-                  <div className={cn("px-4 pb-3 pt-2 flex flex-wrap gap-2 border-t", theme === "dark" ? "border-white/10 bg-white/5" : "border-slate-200 bg-slate-50")}>
-                    {problem.tags.map((tag) => (
-                      <span key={tag} className={cn(
-                        "px-2.5 py-1 rounded-full text-xs font-semibold",
-                        theme === "dark" ? "bg-primary/10 text-primary" : "bg-blue-50 text-blue-700 border border-blue-200"
-                      )}>{tag}</span>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
+                </div>
+              )}
           </div>
-          {/* /card */}
+          {/* /content wrapper */}
         </div>
-        {/* /content wrapper */}
-        </div>
-        {/* /collapsible outer */}
+        {/* /content wrapper + collapsible outer */}
 
         {/* Center: Editor (+ overlay AI Review) */}
         <div className={cn(
@@ -444,151 +525,345 @@ export const ProblemDetail: React.FC = () => {
               showConsole ? "h-48" : "h-9"
             )}
           >
-            {/* Header — always visible, clicking toggles panel */}
+            {/* Header — always visible, clicking chevron toggles panel */}
             <div
               className={cn(
-                "flex items-center gap-4 px-4 h-9 border-b cursor-pointer select-none shrink-0",
-                theme === "dark" ? "border-white/5 bg-[#252526] hover:bg-white/5" : "border-slate-200 bg-slate-100 hover:bg-slate-200"
+                "flex items-center h-9 border-b select-none shrink-0",
+                theme === "dark" ? "border-white/5 bg-[#252526]" : "border-slate-200 bg-slate-100"
               )}
-              onClick={() => setShowConsole(prev => !prev)}
             >
-              <button type="button" className={cn(
-                "text-xs font-bold uppercase tracking-wider transition-colors",
-                theme === "dark" ? "text-white" : "text-slate-900"
-              )}>
+              {/* Tabs */}
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); setShowConsole(true); setConsoleTab("cases"); }}
+                className={cn(
+                  "h-full px-4 text-xs font-bold uppercase tracking-wider border-r transition-colors",
+                  theme === "dark" ? "border-white/5" : "border-slate-200",
+                  consoleTab === "cases" && showConsole
+                    ? theme === "dark" ? "text-white border-b-2 border-b-primary" : "text-slate-900 border-b-2 border-b-primary"
+                    : theme === "dark" ? "text-white/40 hover:text-white" : "text-slate-400 hover:text-slate-700"
+                )}
+              >
                 Testcases
               </button>
-              <button type="button" className={cn(
-                "text-xs font-bold uppercase tracking-wider transition-colors",
-                theme === "dark" ? "text-white/40" : "text-slate-400"
-              )}>
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); setShowConsole(true); setConsoleTab("result"); }}
+                className={cn(
+                  "h-full px-4 text-xs font-bold uppercase tracking-wider border-r transition-colors",
+                  theme === "dark" ? "border-white/5" : "border-slate-200",
+                  consoleTab === "result" && showConsole
+                    ? theme === "dark" ? "text-white border-b-2 border-b-primary" : "text-slate-900 border-b-2 border-b-primary"
+                    : theme === "dark" ? "text-white/40 hover:text-white" : "text-slate-400 hover:text-slate-700"
+                )}
+              >
                 Test Result
               </button>
               <div className="flex-1" />
-              <ChevronDown
-                className="h-4 w-4 text-muted-foreground transition-transform duration-200"
-                style={{ transform: showConsole ? "rotate(0deg)" : "rotate(180deg)" }}
-              />
+              <button
+                type="button"
+                onClick={() => setShowConsole(prev => !prev)}
+                className="px-3 h-full flex items-center"
+              >
+                <ChevronDown
+                  className="h-4 w-4 text-muted-foreground transition-transform duration-200"
+                  style={{ transform: showConsole ? "rotate(0deg)" : "rotate(180deg)" }}
+                />
+              </button>
             </div>
 
             {/* Body — only visible when open */}
             {showConsole && (
-              <div className="flex-1 p-4 overflow-y-auto">
-                <div className={cn(
-                  "rounded-md border p-4 font-mono text-sm",
-                  theme === "dark" ? "border-white/10 bg-black/20 text-white/60" : "border-slate-200 bg-white text-slate-500"
-                )}>
-                  <div className="flex items-center gap-2 mb-2 text-primary">
-                    <Play className="h-4 w-4" />
-                    <span className="font-bold">Ready</span>
+              <div className="flex-1 p-3 overflow-y-auto">
+                {consoleTab === "cases" ? (
+                  <div className="flex flex-col gap-2">
+                    {[
+                      { id: 1, input: "nums = [2,7,11,15], target = 9", output: "[0,1]" },
+                      { id: 2, input: "nums = [3,2,4], target = 6",     output: "[1,2]" },
+                      { id: 3, input: "nums = [3,3], target = 6",       output: "[0,1]" },
+                    ].map((tc) => (
+                      <div key={tc.id} className={cn(
+                        "rounded-lg border p-3 font-mono text-xs space-y-1.5",
+                        theme === "dark" ? "border-white/10 bg-black/20" : "border-slate-200 bg-white"
+                      )}>
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className={cn(
+                            "text-[10px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded",
+                            theme === "dark" ? "bg-white/10 text-white/50" : "bg-slate-100 text-slate-500"
+                          )}>Case {tc.id}</span>
+                        </div>
+                        <div>
+                          <span className={cn("font-bold", theme === "dark" ? "text-white/60" : "text-slate-500")}>Input: </span>
+                          <span className={theme === "dark" ? "text-emerald-400" : "text-emerald-700"}>{tc.input}</span>
+                        </div>
+                        <div>
+                          <span className={cn("font-bold", theme === "dark" ? "text-white/60" : "text-slate-500")}>Expected: </span>
+                          <span className={theme === "dark" ? "text-blue-400" : "text-blue-700"}>{tc.output}</span>
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                  Click "Run" to execute your code against the sample testcases.
-                </div>
+                ) : (
+                  <div className="flex flex-col gap-2">
+                    {/* Submission / Run result banner */}
+                    {hasSubmissionResult && (
+                      <div className={cn(
+                        "rounded-lg border p-3 flex items-center justify-between mb-1",
+                        theme === "dark"
+                          ? "border-emerald-500/30 bg-emerald-500/10"
+                          : "border-emerald-200 bg-emerald-50"
+                      )}>
+                        <div className="flex items-center gap-3">
+                          <CheckCircle2 className="h-5 w-5 text-emerald-500 shrink-0" />
+                          <div>
+                            <p className="text-sm font-bold text-emerald-500">Accepted</p>
+                            <p className={cn("text-xs", theme === "dark" ? "text-white/50" : "text-slate-500")}>76 / 76 test cases passed</p>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-xs font-bold text-emerald-500">76/76</p>
+                          <p className={cn("text-[10px]", theme === "dark" ? "text-white/30" : "text-slate-400")}>Runtime: 68 ms · Memory: 42.5 MB</p>
+                        </div>
+                      </div>
+                    )}
+                    {hasRunResults && !hasSubmissionResult && (
+                      <div className={cn(
+                        "rounded-lg border p-2.5 flex items-center gap-2 mb-1",
+                        theme === "dark" ? "border-blue-500/20 bg-blue-500/5" : "border-blue-200 bg-blue-50"
+                      )}>
+                        <Play className="h-3.5 w-3.5 text-blue-500 shrink-0" />
+                        <span className="text-xs font-semibold text-blue-500">3 / 3 Sample Tests Passed</span>
+                      </div>
+                    )}
+                    {[
+                      { id: 1, input: "nums = [2,7,11,15], target = 9", expected: "[0,1]", got: "[0,1]", pass: true,  time: "1 ms",  mem: "42.3 MB" },
+                      { id: 2, input: "nums = [3,2,4], target = 6",     expected: "[1,2]", got: "[1,2]", pass: true,  time: "0 ms",  mem: "41.9 MB" },
+                      { id: 3, input: "nums = [3,3], target = 6",       expected: "[0,1]", got: "[0,1]", pass: true,  time: "0 ms",  mem: "42.1 MB" },
+                    ].map((tc) => (
+                      <div key={tc.id} className={cn(
+                        "rounded-lg border p-3 font-mono text-xs space-y-1.5",
+                        tc.pass
+                          ? theme === "dark" ? "border-emerald-500/20 bg-emerald-500/5" : "border-emerald-200 bg-emerald-50"
+                          : theme === "dark" ? "border-rose-500/20 bg-rose-500/5"       : "border-rose-200 bg-rose-50"
+                      )}>
+                        <div className="flex items-center justify-between mb-1">
+                          <span className={cn(
+                            "text-[10px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded",
+                            theme === "dark" ? "bg-white/10 text-white/50" : "bg-slate-100 text-slate-500"
+                          )}>Case {tc.id}</span>
+                          <span className={cn(
+                            "text-[10px] font-bold uppercase tracking-widest flex items-center gap-1",
+                            tc.pass ? "text-emerald-500" : "text-rose-500"
+                          )}>
+                            {tc.pass ? <CheckCircle2 className="h-3 w-3" /> : <XCircle className="h-3 w-3" />}
+                            {tc.pass ? "Passed" : "Failed"}
+                          </span>
+                        </div>
+                        <div><span className={cn("font-bold", theme === "dark" ? "text-white/50" : "text-slate-500")}>Input: </span><span className={theme === "dark" ? "text-white/70" : "text-slate-700"}>{tc.input}</span></div>
+                        <div><span className={cn("font-bold", theme === "dark" ? "text-white/50" : "text-slate-500")}>Expected: </span><span className="text-emerald-500">{tc.expected}</span></div>
+                        <div><span className={cn("font-bold", theme === "dark" ? "text-white/50" : "text-slate-500")}>Got: </span><span className={tc.pass ? "text-emerald-500" : "text-rose-500"}>{tc.got}</span></div>
+                        <div className={cn("flex gap-4 pt-1 border-t text-[10px]", theme === "dark" ? "border-white/10 text-white/30" : "border-slate-200 text-slate-400")}>
+                          <span>⏱ {tc.time}</span><span>💾 {tc.mem}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
           </div>
-        </div>
 
-        {/* AI Review Overlay — slides in over the editor, description untouched */}
-        {showResults && (
-          <div className="absolute inset-y-0 right-0 w-[45%] z-30 flex animate-in slide-in-from-right duration-300">
-            <div className={cn(
-              "flex-1 border-l p-6 flex flex-col gap-5 overflow-hidden",
-              theme === "dark"
-                ? "border-primary/20 bg-[#1a1a2e]/95 backdrop-blur-xl shadow-[-10px_0_40px_rgba(0,0,0,0.4)]"
-                : "border-slate-200 bg-white/95 backdrop-blur-xl shadow-[-8px_0_30px_rgba(0,0,0,0.08)]"
-            )}>
-              <div className="flex items-center justify-between shrink-0">
-                <div className="flex items-center gap-2">
-                  <Sparkles className="h-5 w-5 text-primary animate-pulse" />
-                  <h3 className="font-bold uppercase tracking-[0.2em] text-xs">AI Code Review</h3>
+          {/* AI Review Overlay — slides in over the editor, description untouched */}
+          {showResults && (
+            <div className="absolute inset-y-0 right-0 w-[45%] z-30 flex animate-in slide-in-from-right duration-300">
+              <div className={cn(
+                "flex-1 border-l p-6 flex flex-col gap-5 overflow-hidden",
+                theme === "dark"
+                  ? "border-primary/20 bg-[#1a1a2e]/95 backdrop-blur-xl shadow-[-10px_0_40px_rgba(0,0,0,0.4)]"
+                  : "border-slate-200 bg-white/95 backdrop-blur-xl shadow-[-8px_0_30px_rgba(0,0,0,0.08)]"
+              )}>
+                <div className="flex items-center justify-between shrink-0">
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="h-5 w-5 text-primary animate-pulse" />
+                    <h3 className="font-bold uppercase tracking-[0.2em] text-xs">AI Code Review</h3>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setShowResults(false)}
+                    className="h-8 w-8 rounded-full"
+                  >
+                    <XCircle className="h-5 w-5 text-muted-foreground" />
+                  </Button>
                 </div>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => setShowResults(false)}
-                  className="h-8 w-8 rounded-full"
-                >
-                  <XCircle className="h-5 w-5 text-muted-foreground" />
-                </Button>
-              </div>
 
-              {submitting ? (
-                <div className="flex-1 flex flex-col items-center justify-center text-center gap-4">
-                  <div className="relative">
-                    <Loader2 className="h-12 w-12 text-primary animate-spin" />
-                    <div className="absolute inset-0 blur-xl bg-primary/20 animate-pulse" />
-                  </div>
-                  <div>
-                    <p className="font-semibold text-foreground">Analyzing Code...</p>
-                    <p className="text-sm text-muted-foreground max-w-[200px] mt-2">
-                      Our AI-Antigravity reviewer is checking your implementation.
-                    </p>
-                  </div>
-                </div>
-              ) : (
-                <div className="flex-1 overflow-y-auto space-y-6">
-                  {/* Score Card */}
-                  <div className={cn(
-                    "p-4 rounded-xl border flex items-center justify-between",
-                    theme === "dark" ? "bg-primary/10 border-primary/20" : "bg-primary/5 border-primary/10 shadow-sm"
-                  )}>
-                    <div>
-                      <p className="text-xs text-primary font-bold uppercase tracking-wider">Review Score</p>
-                      <p className="text-3xl font-black text-primary">{submission?.feedback?.score}%</p>
+                {submitting ? (
+                  <div className="flex-1 flex flex-col items-center justify-center text-center gap-4">
+                    <div className="relative">
+                      <Loader2 className="h-12 w-12 text-primary animate-spin" />
+                      <div className="absolute inset-0 blur-xl bg-primary/20 animate-pulse" />
                     </div>
-                    {submission?.status === "accepted" ? (
-                      <CheckCircle2 className="h-10 w-10 text-emerald-500" />
-                    ) : (
-                      <AlertCircle className="h-10 w-10 text-rose-500" />
+                    <div>
+                      <p className="font-semibold text-foreground">Analyzing Code...</p>
+                      <p className="text-sm text-muted-foreground max-w-[200px] mt-2">
+                        Our AI-Antigravity reviewer is checking your implementation.
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex-1 overflow-y-auto space-y-6">
+                    {/* Score Card */}
+                    <div className={cn(
+                      "p-4 rounded-xl border flex items-center justify-between",
+                      theme === "dark" ? "bg-primary/10 border-primary/20" : "bg-primary/5 border-primary/10 shadow-sm"
+                    )}>
+                      <div>
+                        <p className="text-xs text-primary font-bold uppercase tracking-wider">Review Score</p>
+                        <p className="text-3xl font-black text-primary">{submission?.feedback?.score}%</p>
+                      </div>
+                      {submission?.status === "accepted" ? (
+                        <CheckCircle2 className="h-10 w-10 text-emerald-500" />
+                      ) : (
+                        <AlertCircle className="h-10 w-10 text-rose-500" />
+                      )}
+                    </div>
+
+                    {/* Summary */}
+                    <div>
+                      <h4 className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-2">Summary</h4>
+                      <p className="text-sm leading-relaxed">
+                        {submission?.feedback?.summary || "Submission processed. No feedback available yet."}
+                      </p>
+                    </div>
+
+                    {/* Issues */}
+                    {submission?.feedback?.criticalIssues && submission.feedback.criticalIssues.length > 0 && (
+                      <div>
+                        <h4 className="text-[10px] font-bold text-rose-500/80 uppercase tracking-widest mb-3 flex items-center gap-2">
+                          <XCircle className="h-3 w-3" /> Critical Issues
+                        </h4>
+                        <ul className="space-y-2">
+                          {submission.feedback.criticalIssues.map((issue, i) => (
+                            <li key={i} className="text-xs bg-rose-500/5 border border-rose-500/10 p-2 rounded-lg list-none flex gap-2">
+                              <span className="text-rose-500">•</span>{issue}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
+                    {/* Optimizations */}
+                    {submission?.feedback?.performanceOptimizations && (
+                      <div>
+                        <h4 className="text-[10px] font-bold text-emerald-500/80 uppercase tracking-widest mb-3 flex items-center gap-2">
+                          <CheckCircle2 className="h-3 w-3" /> Optimizations
+                        </h4>
+                        <ul className="space-y-2">
+                          {submission.feedback.performanceOptimizations.map((opt, i) => (
+                            <li key={i} className="text-xs bg-emerald-500/5 border border-emerald-500/10 p-2 rounded-lg list-none flex gap-2">
+                              <span className="text-emerald-500">•</span>{opt}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
                     )}
                   </div>
-
-                  {/* Summary */}
-                  <div>
-                    <h4 className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-2">Summary</h4>
-                    <p className="text-sm leading-relaxed">
-                      {submission?.feedback?.summary || "Submission processed. No feedback available yet."}
-                    </p>
-                  </div>
-
-                  {/* Issues */}
-                  {submission?.feedback?.criticalIssues && submission.feedback.criticalIssues.length > 0 && (
-                    <div>
-                      <h4 className="text-[10px] font-bold text-rose-500/80 uppercase tracking-widest mb-3 flex items-center gap-2">
-                        <XCircle className="h-3 w-3" /> Critical Issues
-                      </h4>
-                      <ul className="space-y-2">
-                        {submission.feedback.criticalIssues.map((issue, i) => (
-                          <li key={i} className="text-xs bg-rose-500/5 border border-rose-500/10 p-2 rounded-lg list-none flex gap-2">
-                            <span className="text-rose-500">•</span>{issue}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-
-                  {/* Optimizations */}
-                  {submission?.feedback?.performanceOptimizations && (
-                    <div>
-                      <h4 className="text-[10px] font-bold text-emerald-500/80 uppercase tracking-widest mb-3 flex items-center gap-2">
-                        <CheckCircle2 className="h-3 w-3" /> Optimizations
-                      </h4>
-                      <ul className="space-y-2">
-                        {submission.feedback.performanceOptimizations.map((opt, i) => (
-                          <li key={i} className="text-xs bg-emerald-500/5 border border-emerald-500/10 p-2 rounded-lg list-none flex gap-2">
-                            <span className="text-emerald-500">•</span>{opt}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+      {/* Hint Overlay Panel */}
+      {showHint && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-6" onClick={() => setShowHint(false)}>
+          <div
+            className={cn(
+              "w-full max-w-md rounded-2xl border shadow-2xl flex flex-col gap-0 overflow-hidden animate-in fade-in zoom-in-95 duration-200",
+              theme === "dark"
+                ? "bg-[#1a1a2e]/95 backdrop-blur-xl border-amber-500/20"
+                : "bg-white/95 backdrop-blur-xl border-amber-200 shadow-amber-100"
+            )}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className={cn(
+              "flex items-center justify-between px-5 py-4 border-b",
+              theme === "dark" ? "border-amber-500/15 bg-amber-500/5" : "border-amber-100 bg-amber-50"
+            )}>
+              <div className="flex items-center gap-2.5">
+                <div className="h-8 w-8 rounded-full bg-amber-500/15 flex items-center justify-center">
+                  <Lightbulb className="h-4 w-4 text-amber-500" />
                 </div>
+                <div>
+                  <h3 className="text-sm font-bold">AI Hint</h3>
+                  <p className={cn("text-[10px]", theme === "dark" ? "text-white/40" : "text-slate-400")}>
+                    {language} · {problem?.title}
+                  </p>
+                </div>
+              </div>
+              <Button variant="ghost" size="icon" className="h-7 w-7 rounded-full" onClick={() => setShowHint(false)}>
+                <XCircle className="h-4 w-4 text-muted-foreground" />
+              </Button>
+            </div>
+
+            {/* Body */}
+            <div className="p-5 flex flex-col gap-3 max-h-[70vh] overflow-y-auto">
+              {hintLoading ? (
+                <div className="flex flex-col gap-3">
+                  {[1, 2, 3].map((i) => (
+                    <div key={i} className={cn(
+                      "rounded-xl border p-4 space-y-2 animate-pulse",
+                      theme === "dark" ? "border-white/10 bg-white/5" : "border-slate-100 bg-slate-50"
+                    )}>
+                      <div className={cn("h-3 w-24 rounded", theme === "dark" ? "bg-white/10" : "bg-slate-200")} />
+                      <div className={cn("h-3 w-full rounded", theme === "dark" ? "bg-white/10" : "bg-slate-200")} />
+                      <div className={cn("h-3 w-4/5 rounded", theme === "dark" ? "bg-white/10" : "bg-slate-200")} />
+                    </div>
+                  ))}
+                  <p className={cn("text-center text-xs mt-1", theme === "dark" ? "text-white/30" : "text-slate-400")}>
+                    AI is analyzing your code…
+                  </p>
+                </div>
+              ) : (
+                hints.map((hint, i) => {
+                  const colors = [
+                    { border: "border-blue-500/20",  bg: theme === "dark" ? "bg-blue-500/5"   : "bg-blue-50",   badge: "bg-blue-500/15 text-blue-500",   icon: "text-blue-500" },
+                    { border: "border-amber-500/20", bg: theme === "dark" ? "bg-amber-500/5"  : "bg-amber-50",  badge: "bg-amber-500/15 text-amber-500",  icon: "text-amber-500" },
+                    { border: "border-emerald-500/20",bg: theme === "dark" ? "bg-emerald-500/5": "bg-emerald-50",badge: "bg-emerald-500/15 text-emerald-500",icon: "text-emerald-500" },
+                  ][i] ?? { border: "border-white/10", bg: "", badge: "bg-white/10 text-white/50", icon: "" }
+                  return (
+                    <div key={i} className={cn("rounded-xl border p-4", colors.border, colors.bg)}>
+                      <div className="flex items-center gap-2 mb-2">
+                        <Lightbulb className={cn("h-3.5 w-3.5", colors.icon)} />
+                        <span className={cn("text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full", colors.badge)}>
+                          Hint {i + 1} · {hint.level}
+                        </span>
+                      </div>
+                      <p className={cn("text-sm leading-relaxed", theme === "dark" ? "text-white/80" : "text-slate-700")}>
+                        {hint.text}
+                      </p>
+                    </div>
+                  )
+                })
               )}
             </div>
+
+            {/* Footer */}
+            <div className={cn(
+              "px-5 py-3 border-t flex items-center justify-between",
+              theme === "dark" ? "border-white/5 bg-white/[0.02]" : "border-slate-100 bg-slate-50"
+            )}>
+              <p className={cn("text-[10px]", theme === "dark" ? "text-white/25" : "text-slate-400")}>
+                Hints are generated without revealing the solution.
+              </p>
+              <Button size="sm" variant="ghost" className="h-7 text-xs text-amber-500 hover:text-amber-400" onClick={handleGetHint}>
+                Regenerate
+              </Button>
+            </div>
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   )
 }
