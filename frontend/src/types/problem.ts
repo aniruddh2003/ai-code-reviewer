@@ -1,10 +1,23 @@
-export type ProblemDifficulty = "Easy" | "Medium" | "Hard";
+export interface ProblemEditorial {
+  approach: string;
+  complexity: {
+    time: string;
+    space: string;
+  };
+  solutionCode: {
+    javascript: string;
+    python: string;
+    cpp: string;
+  };
+}
 
 export interface ProblemExample {
   input: string;
   output: string;
   explanation?: string;
 }
+
+export type ProblemDifficulty = "Easy" | "Medium" | "Hard";
 
 export interface Problem {
   id: string;
@@ -28,4 +41,5 @@ export interface Problem {
     space: string;
   };
   tags?: string[];
+  editorial?: ProblemEditorial;
 }

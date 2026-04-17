@@ -24,10 +24,13 @@ import {
 import { WorkspaceHeader } from "@/components/ProblemDetail/WorkspaceHeader";
 import { TabNavigation, LeftTabType } from "@/components/ProblemDetail/TabNavigation";
 import { ProblemDescription } from "@/components/ProblemDetail/ProblemDescription";
+import { EditorialPanel } from "@/components/ProblemDetail/EditorialPanel";
 import { TestcasePanel } from "@/components/ProblemDetail/TestcasePanel";
 import { EditorPanel } from "@/components/ProblemDetail/EditorPanel";
 import { AIReviewOverlay } from "@/components/ProblemDetail/AIReviewOverlay";
 import { HintModal } from "@/components/ProblemDetail/HintModal";
+import { SubmissionsPanel } from "@/components/ProblemDetail/SubmissionsPanel";
+import { SubmissionModal } from "@/components/ProblemDetail/SubmissionModal";
 
 export const ProblemDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -48,6 +51,10 @@ export const ProblemDetail: React.FC = () => {
   const [hasSubmissionResult, setHasSubmissionResult] = useState(false);
   const [showDescription, setShowDescription] = useState(true);
   const [leftTab, setLeftTab] = useState<LeftTabType>("description");
+
+  const [submissions, setSubmissions] = useState<Submission[]>([]);
+  const [selectedSubmission, setSelectedSubmission] = useState<Submission | null>(null);
+  const [showSubmissionModal, setShowSubmissionModal] = useState(false);
 
   // Hint feature
   const [showHint, setShowHint] = useState(false);
@@ -96,6 +103,18 @@ export const ProblemDetail: React.FC = () => {
                 "class Solution:\n    def twoSum(self, nums: List[int], target: int) -> List[int]:\n        pass",
               cpp: "class Solution {\npublic:\n    vector<int> twoSum(vector<int>& nums, int target) {\n        \n    }\n};",
             },
+            editorial: {
+              approach: "We can solve this efficiently in one pass using a Hash Map. As we iterate through the array, we check if the complement (target - nums[i]) already exists in our map. If it does, we've found our pair. If not, we store the current number's value and its index in the map for future lookups.",
+              complexity: {
+                time: "O(n)",
+                space: "O(n)"
+              },
+              solutionCode: {
+                javascript: "var twoSum = function(nums, target) {\n    const map = new Map();\n    for (let i = 0; i < nums.length; i++) {\n        const complement = target - nums[i];\n        if (map.has(complement)) {\n            return [map.get(complement), i];\n        }\n        map.set(nums[i], i);\n    }\n};",
+                python: "class Solution:\n    def twoSum(self, nums: List[int], target: int) -> List[int]:\n        prevMap = {} # val -> index\n\n        for i, n in enumerate(nums):\n            diff = target - n\n            if diff in prevMap:\n                return [prevMap[diff], i]\n            prevMap[n] = i",
+                cpp: "class Solution {\npublic:\n    vector<int> twoSum(vector<int>& nums, int target) {\n        unordered_map<int, int> prevMap;\n\n        for (int i = 0; i < nums.size(); i++) {\n            int diff = target - nums[i];\n            if (prevMap.count(diff)) {\n                return {prevMap[diff], i};\n            }\n            prevMap[nums[i]] = i;\n        }\n        return {};\n    }\n};"
+              }
+            }
           },
           "reverse-int": {
             id: "reverse-int",
@@ -126,8 +145,46 @@ export const ProblemDetail: React.FC = () => {
                 "class Solution:\n    def reverse(self, x: int) -> int:\n        pass",
               cpp: "class Solution {\npublic:\n    int reverse(int x) {\n        \n    }\n};",
             },
+            editorial: {
+              approach: "We can reverse the integer by repeatedly popping the last digit and pushing it onto the end of the new integer. To handle the signed 32-bit limit, we check for overflow before multiplying the result by 10 and adding the new digit.",
+              complexity: {
+                time: "O(log x)",
+                space: "O(1)"
+              },
+              solutionCode: {
+                javascript: "var reverse = function(x) {\n    const isNegative = x < 0;\n    x = Math.abs(x);\n    let result = 0;\n    while (x > 0) {\n        const digit = x % 10;\n        result = (result * 10) + digit;\n        x = Math.floor(x / 10);\n    }\n    if (result > Math.pow(2, 31) - 1) return 0;\n    return isNegative ? -result : result;\n};",
+                python: "class Solution:\n    def reverse(self, x: int) -> int:\n        res = 0\n        sign = -1 if x < 0 else 1\n        x = abs(x)\n\n        while x > 0:\n            digit = x % 10\n            res = (res * 10) + digit\n            x //= 10\n\n        res *= sign\n        if res < -2**31 or res > 2**31 - 1:\n            return 0\n        return res",
+                cpp: "class Solution {\npublic:\n    int reverse(int x) {\n        int res = 0;\n        while (x != 0) {\n            if (res > INT_MAX / 10 || res < INT_MIN / 10) return 0;\n            res = res * 10 + x % 10;\n            x /= 10;\n        }\n        return res;\n    }\n};"
+              }
+            }
           },
         };
+
+        // Mock Submissions
+        setSubmissions([
+          {
+            id: "sub-1",
+            userId: "demo-user",
+            problemId: "two-sum",
+            code: "var twoSum = function(nums, target) {\n    for (let i = 0; i < nums.length; i++) {\n        for (let j = i + 1; j < nums.length; j++) {\n            if (nums[i] + nums[j] === target) return [i, j];\n        }\n    }\n};",
+            language: "JavaScript",
+            status: "accepted",
+            createdAt: { toDate: () => new Date("2023-12-01T10:00:00Z") },
+            runtime: "12 ms",
+            memory: "11.4 MB"
+          },
+          {
+            id: "sub-2",
+            userId: "demo-user",
+            problemId: "two-sum",
+            code: "class Solution:\n    def twoSum(self, nums: List[int], target: int) -> List[int]:\n        # Brute force\n        for i in range(len(nums)):\n            for j in range(i + 1, len(nums)):\n                if nums[i] + nums[j] == target:\n                    return [i, j]",
+            language: "Python",
+            status: "accepted",
+            createdAt: { toDate: () => new Date("2023-03-28T14:30:00Z") },
+            runtime: "607 ms",
+            memory: "10.1 MB"
+          }
+        ] as any);
 
         const found = mockProblems[id as string] || mockProblems["two-sum"];
         setProblem(found);
@@ -374,6 +431,13 @@ Each hint should be 1-2 sentences. Return ONLY the JSON array, no markdown.`;
                 />
               )}
 
+              {leftTab === "editorial" && (
+                <EditorialPanel
+                  problem={problem}
+                  theme={theme}
+                />
+              )}
+
               {leftTab === "testcases" && (
                 <TestcasePanel
                   hasSubmissionResult={hasSubmissionResult}
@@ -384,8 +448,20 @@ Each hint should be 1-2 sentences. Return ONLY the JSON array, no markdown.`;
                 />
               )}
 
-              {["editorial", "solutions", "submissions"].includes(leftTab) && (
+              {leftTab === "submissions" && (
+                <SubmissionsPanel
+                  submissions={submissions}
+                  onSelectSubmission={(sub) => {
+                    setSelectedSubmission(sub);
+                    setShowSubmissionModal(true);
+                  }}
+                  theme={theme}
+                />
+              )}
+
+              {leftTab === "solutions" && (
                 <div className="flex-1 flex flex-col items-center justify-center p-10 text-center opacity-40">
+                  <BookOpen className="h-8 w-8 mb-2" />
                   <h3 className="text-sm font-bold uppercase tracking-widest">{leftTab}</h3>
                   <p className="text-xs mt-2 max-w-[200px]">Coming soon in the next update.</p>
                 </div>
@@ -440,6 +516,12 @@ Each hint should be 1-2 sentences. Return ONLY the JSON array, no markdown.`;
         hints={hints}
         problemTitle={problem.title}
         language={language}
+        theme={theme}
+      />
+      <SubmissionModal
+        submission={selectedSubmission}
+        isOpen={showSubmissionModal}
+        onClose={() => setShowSubmissionModal(false)}
         theme={theme}
       />
     </div>

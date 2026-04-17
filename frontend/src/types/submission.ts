@@ -8,6 +8,8 @@ export interface Submission {
   language: string;
   status: SubmissionStatus;
   createdAt: any; // ServerTimestamp
+  runtime?: string;
+  memory?: string;
   feedback?: {
     score: number;
     summary: string;
