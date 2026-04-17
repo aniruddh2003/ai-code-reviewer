@@ -1,0 +1,31 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Problem collection: Authenticated users can read only
+    match /problems/{problemId} {
+      allow read: if request.auth != null;
+      allow write: if false; // Only manageable via Admin SDK
+    }
+
+    // Submissions collection: User-isolated access
+    match /submissions/{submissionId} {
+      // Users can only create submissions for themselves
+      allow create: if request.auth != null && 
+                    request.resource.data.userId == request.auth.uid &&
+                    request.resource.data.status == 'PENDING';
+      
+      // Users can only read their own submissions
+      allow read: if request.auth != null && 
+                  resource.data.userId == request.auth.uid;
+      
+      // Prevent user updates (Judge Worker uses Admin SDK)
+      allow update: if false;
+      allow delete: if false;
+    }
+
+    // Profiles collection
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+  }
+}

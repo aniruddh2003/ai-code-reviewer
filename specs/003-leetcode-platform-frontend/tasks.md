@@ -15,11 +15,11 @@
 
 **Purpose**: Project initialization and basic structure
 
-- [ ] T001 Initialize Vite/React project structure in `frontend/`
-- [ ] T002 Install dependencies (firebase, monaco-editor, tailwindcss, framer-motion, lucide-react) in `frontend/package.json`
-- [ ] T003 [P] Configure Firebase Client SDK in `frontend/src/firebase/config.ts`
-- [ ] T004 Setup Firebase Emulator for local testing in project root
-- [ ] T005 Update root `README.md` to reflect full-stack platform vision
+- [x] T001 Initialize Vite/React project structure in `frontend/`
+- [x] T002 Install dependencies (firebase, monaco-editor, tailwindcss, lucide-react, shadcn dependencies) in `frontend/package.json`
+- [x] T003 [P] Configure Firebase Client SDK in `frontend/src/firebase/config.ts`
+- [x] T004 Setup Firebase Emulator for local testing in project root
+- [x] T005 Update root `README.md` to reflect full-stack platform vision
 
 ---
 
@@ -29,10 +29,10 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T006 Implement Glassmorphic Shell/Layout in `frontend/src/components/Layout`
-- [ ] T007 Create Theme Store (Zustand/Context) in `frontend/src/stores/themeStore.ts`
-- [ ] T008 [P] Implement `useAuth` hook for Firebase Auth in `frontend/src/hooks/useAuth.ts`
-- [ ] T009 [P] Define Firestore Security Rules in `firestore.rules` per `contracts/submissions.md`
+- [x] T006 Implement Glassmorphic Shell/Layout using Shadcn/UI in `frontend/src/components/Layout`
+- [x] T007 Create Theme Store (Zustand/Context) in `frontend/src/stores/themeStore.ts`
+- [x] T008 [P] Implement `useAuth` hook for Firebase Auth in `frontend/src/hooks/useAuth.ts`
+- [x] T009 [P] Define Firestore Security Rules in `firestore.rules` per `contracts/submissions.md`
 
 **Checkpoint**: Foundation ready - user story implementation can now begin in parallel
 

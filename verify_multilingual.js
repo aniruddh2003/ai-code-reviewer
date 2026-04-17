@@ -4,9 +4,9 @@ async function runMultilingualVerification() {
       name: "Python",
       payload: {
         language: "python",
-        code: "def solution(n, arr):\n    return sum(arr) - n",
+        code: "def solution(n, arr):\n    return sum(arr) - n*2",
         testCases: [
-          { name: "leetcode style python", input: "14\n[1, 2, 3, 4, 5, 6, 7]", expected: "14\n" }
+          { name: "leetcode style python", input: "14\n[1, 2, 3, 4, 5, 6, 7]", expected: "0\n" }
         ]
       }
     },
@@ -31,10 +31,10 @@ async function runMultilingualVerification() {
       payload: {
         language: "python",
         code: "import heapq\ndef solution(start, n, adj):\n    dist = [float('inf')] * n\n    dist[start] = 0\n    pq = [(0, start)]\n    while pq:\n        d, u = heapq.heappop(pq)\n        if d > dist[u]: continue\n        for v, w in adj[u]:\n            if dist[u] + w < dist[v]:\n                dist[v] = dist[u] + w\n                heapq.heappush(pq, (dist[v], v))\n    return dist",
-        testCases: [{ 
-          name: "python dijkstra", 
-          input: "0\n5\n[[[1,4],[2,2]],[[2,3],[3,2],[4,3]],[[1,1],[3,4]],[[4,1]],[]]", 
-          expected: "[0, 3, 2, 5, 6]" 
+        testCases: [{
+          name: "python dijkstra",
+          input: "0\n5\n[[[1,4],[2,2]],[[2,3],[3,2],[4,3]],[[1,1],[3,4]],[[4,1]],[]]",
+          expected: "[0, 3, 2, 5, 6]"
         }]
       }
     },
@@ -51,7 +51,7 @@ async function runMultilingualVerification() {
       payload: {
         language: "node",
         code: "function solution(cube) {\n    return cube.flat(2).reduce((a, b) => a + b, 0);\n}",
-        testCases: [{ name: "3d vector sum", input: "[[[1,1],[1,1]],[[1,1],[1,1]]]", expected: "8" }]
+        testCases: [{ name: "3d vector sumation", input: "[[[1,1],[1,1]],[[1,1],[1,1]]]", expected: "8" }]
       }
     },
     {
@@ -67,10 +67,10 @@ async function runMultilingualVerification() {
       payload: {
         language: "node",
         code: "function solution(start, n, adj) {\n    const dist = Array(n).fill(Infinity);\n    dist[start] = 0;\n    const visited = Array(n).fill(false);\n    for (let i = 0; i < n; i++) {\n        let u = -1;\n        for (let v = 0; v < n; v++) {\n            if (!visited[v] && (u === -1 || dist[v] < dist[u])) u = v;\n        }\n        if (u === -1 || dist[u] === Infinity) break;\n        visited[u] = true;\n        for (const [v, w] of adj[u]) {\n            if (dist[u] + w < dist[v]) dist[v] = dist[u] + w;\n        }\n    }\n    return dist.map(d => d === Infinity ? null : d);\n}",
-        testCases: [{ 
-          name: "node dijkstra", 
-          input: "0\n5\n[[[1,4],[2,2]],[[2,3],[3,2],[4,3]],[[1,1],[3,4]],[[4,1]],[]]", 
-          expected: "[0,3,2,5,6]" 
+        testCases: [{
+          name: "node dijkstra",
+          input: "0\n5\n[[[1,4],[2,2]],[[2,3],[3,2],[4,3]],[[1,1],[3,4]],[[4,1]],[]]",
+          expected: "[0,3,2,5,6]"
         }]
       }
     },
@@ -111,10 +111,10 @@ async function runMultilingualVerification() {
       payload: {
         language: "cpp",
         code: `#include <vector>\n#include <queue>\n#include <tuple>\nusing namespace std;\nvector<int> solution(int start, int n, vector<vector<vector<int>>> adj) {\n    vector<int> dist(n, 2147483647);\n    dist[start] = 0;\n    priority_queue<pair<int, int>, vector<pair<int, int>>, greater<pair<int, int>>> pq;\n    pq.push({0, start});\n    while(!pq.empty()){\n        auto [d, u] = pq.top(); pq.pop();\n        if(d > dist[u]) continue;\n        for(auto& edge : adj[u]){\n            int v = edge[0], w = edge[1];\n            if(dist[u] + w < dist[v]){\n                dist[v] = dist[u] + w;\n                pq.push({dist[v], v});\n            }\n        }\n    }\n    return dist;\n}`,
-        testCases: [{ 
-          name: "dijkstra simple", 
-          input: "0\n5\n[[[1,4],[2,2]],[[2,3],[3,2],[4,3]],[[1,1],[3,4]],[[4,1]],[]]", 
-          expected: "[0,3,2,5,6]" 
+        testCases: [{
+          name: "dijkstra simple",
+          input: "0\n5\n[[[1,4],[2,2]],[[2,3],[3,2],[4,3]],[[1,1],[3,4]],[[4,1]],[]]",
+          expected: "[0,3,2,5,6]"
         }]
       }
     }
