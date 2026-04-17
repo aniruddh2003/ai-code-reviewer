@@ -30,6 +30,10 @@ import {
   Clock,
   BarChart2,
   Lightbulb,
+  History,
+  FlaskConical,
+  Terminal,
+  FileText,
 } from "lucide-react";
 import Editor from "@monaco-editor/react";
 import { useThemeStore } from "@/stores/themeStore";
@@ -58,11 +62,12 @@ export const ProblemDetail: React.FC = () => {
   const [showResults, setShowResults] = useState(false);
   const [expandedComplexity, setExpandedComplexity] = useState(false);
   const [expandedTags, setExpandedTags] = useState(false);
-  const [showConsole, setShowConsole] = useState(false);
-  const [consoleTab, setConsoleTab] = useState<"cases" | "result">("cases");
   const [hasRunResults, setHasRunResults] = useState(false);
   const [hasSubmissionResult, setHasSubmissionResult] = useState(false);
   const [showDescription, setShowDescription] = useState(true);
+  const [leftTab, setLeftTab] = useState<
+    "description" | "editorial" | "solutions" | "submissions" | "testcases"
+  >("description");
   // Hint feature
   const [showHint, setShowHint] = useState(false);
   const [hintLoading, setHintLoading] = useState(false);
@@ -186,7 +191,7 @@ export const ProblemDetail: React.FC = () => {
 
     setSubmitting(true);
     setShowResults(true);
-    setShowConsole(true);
+    setLeftTab("testcases");
 
     if (isDemoMode) {
       // Simulation for Demo Mode
@@ -387,7 +392,7 @@ Each hint should be 1-2 sentences. Return ONLY the JSON array, no markdown.`;
             size="sm"
             className="h-9 gap-2"
             onClick={() => {
-              setShowConsole(true);
+              setLeftTab("testcases");
               setHasRunResults(true);
             }}
           >
@@ -423,10 +428,10 @@ Each hint should be 1-2 sentences. Return ONLY the JSON array, no markdown.`;
             type="button"
             onClick={() => setShowDescription((prev) => !prev)}
             title={
-              showDescription ? "Collapse description" : "Expand description"
+              showDescription ? "Collapse panel" : "Expand panel"
             }
             className={cn(
-              "absolute right-0 top-1/2 -translate-y-1/2 z-10 flex items-center justify-center h-12 w-6 rounded-l-md border border-r-0 transition-colors",
+              "absolute right-0 top-1/2 -translate-y-1/2 z-20 flex items-center justify-center h-12 w-6 rounded-l-md border border-r-0 transition-colors",
               theme === "dark"
                 ? "bg-[#252526] border-white/10 text-white/40 hover:text-white hover:bg-white/10"
                 : "bg-slate-100 border-slate-200 text-slate-400 hover:text-slate-700 hover:bg-slate-200",
@@ -440,225 +445,569 @@ Each hint should be 1-2 sentences. Return ONLY the JSON array, no markdown.`;
             />
           </button>
 
+          {/* Tab Bar */}
+          {showDescription && (
+            <div className={cn(
+              "flex items-center gap-1 px-2 pt-2 border-b shrink-0",
+              theme === "dark" ? "border-white/5 bg-[#1e1e1e]" : "border-slate-200 bg-slate-50/50"
+            )}>
+              {[
+                { id: "description", label: "Description", icon: FileText, color: "text-blue-500" },
+                { id: "editorial", label: "Editorial", icon: BookOpen, color: "text-amber-500" },
+                { id: "solutions", label: "Solutions", icon: FlaskConical, color: "text-blue-500" },
+                { id: "submissions", label: "Submissions", icon: History, color: "text-blue-500" },
+                { id: "testcases", label: "Testcases", icon: Terminal, color: "text-emerald-500" },
+              ].map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => setLeftTab(tab.id as any)}
+                  className={cn(
+                    "flex items-center gap-2 px-3 py-2 text-xs font-medium transition-all relative border-b-2 border-transparent",
+                    leftTab === tab.id
+                      ? theme === "dark" ? "text-white border-primary bg-white/5" : "text-slate-900 border-primary bg-white"
+                      : theme === "dark" ? "text-white/40 hover:text-white/60 hover:bg-white/5" : "text-slate-400 hover:text-slate-600 hover:bg-white"
+                  )}
+                >
+                  <tab.icon className={cn("h-3.5 w-3.5", leftTab === tab.id ? tab.color : "text-muted-foreground/60")} />
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+          )}
+
           {/* Content */}
           <div
-            className="flex-1 flex flex-col gap-5 overflow-y-auto overflow-x-hidden px-5 py-4"
+            className="flex-1 overflow-y-auto overflow-x-hidden"
             style={{
               opacity: showDescription ? 1 : 0,
               pointerEvents: showDescription ? "auto" : "none",
               transition: "opacity 0.2s",
             }}
           >
-            {/* Title */}
-            <div>
-              <h2 className="text-lg font-bold tracking-tight mb-2">
-                {problem.title}
-              </h2>
-              {/* Metadata Bar */}
-              <div
-                className={cn(
-                  "flex flex-wrap items-center gap-x-3 gap-y-1 text-xs border-b pb-3",
-                  theme === "dark" ? "border-white/10" : "border-slate-200",
-                )}
-              >
-                <span
-                  className={cn(
-                    "font-bold",
-                    problem.difficulty === "Easy" && "text-emerald-500",
-                    problem.difficulty === "Medium" && "text-amber-500",
-                    problem.difficulty === "Hard" && "text-rose-500",
-                  )}
-                >
-                  {problem.difficulty}
-                </span>
-                {problem.accuracy && (
-                  <span className="text-muted-foreground">
-                    Accuracy:{" "}
-                    <span className="font-semibold text-foreground">
-                      {problem.accuracy}
-                    </span>
-                  </span>
-                )}
-                {problem.submissions && (
-                  <span className="text-muted-foreground">
-                    Submissions:{" "}
-                    <span className="font-semibold text-foreground">
-                      {problem.submissions}
-                    </span>
-                  </span>
-                )}
-                {problem.points && (
-                  <span className="text-muted-foreground">
-                    Points:{" "}
-                    <span className="font-semibold text-foreground">
-                      {problem.points}
-                    </span>
-                  </span>
-                )}
-              </div>
-            </div>
-
-            {/* Description Text */}
-            <p
-              className={cn(
-                "text-sm leading-relaxed whitespace-pre-wrap",
-                theme === "dark" ? "text-muted-foreground" : "text-slate-600",
-              )}
-            >
-              {problem.description}
-            </p>
-
-            {/* Examples */}
-            {problem.examples && problem.examples.length > 0 && (
-              <div className="flex flex-col gap-3">
-                <h4 className="text-sm font-bold">Examples:</h4>
-                {problem.examples.map((ex, i) => (
+            {leftTab === "description" && (
+              <div className="flex flex-col gap-5 px-5 py-6">
+                {/* Title */}
+                <div>
+                  <h2 className="text-lg font-bold tracking-tight mb-2">
+                    {problem.title}
+                  </h2>
+                  {/* Metadata Bar */}
                   <div
-                    key={i}
                     className={cn(
-                      "rounded-lg border p-3 text-xs font-mono space-y-1",
-                      theme === "dark"
-                        ? "border-white/10 bg-white/5"
-                        : "border-slate-200 bg-slate-50",
+                      "flex flex-wrap items-center gap-x-3 gap-y-1 text-xs border-b pb-3",
+                      theme === "dark" ? "border-white/10" : "border-slate-200",
                     )}
                   >
-                    <div>
-                      <span className="font-bold">Input:</span>{" "}
-                      <span className="text-muted-foreground">{ex.input}</span>
-                    </div>
-                    <div>
-                      <span className="font-bold">Output:</span>{" "}
-                      <span className="text-muted-foreground">{ex.output}</span>
-                    </div>
-                    {ex.explanation && (
-                      <div className="font-sans">
-                        <span className="font-bold font-sans">
-                          Explanation:
-                        </span>{" "}
-                        <span className="text-muted-foreground">
-                          {ex.explanation}
+                    <span
+                      className={cn(
+                        "font-bold",
+                        problem.difficulty === "Easy" && "text-emerald-500",
+                        problem.difficulty === "Medium" && "text-amber-500",
+                        problem.difficulty === "Hard" && "text-rose-500",
+                      )}
+                    >
+                      {problem.difficulty}
+                    </span>
+                    {problem.accuracy && (
+                      <span className="text-muted-foreground">
+                        Accuracy:{" "}
+                        <span className="font-semibold text-foreground">
+                          {problem.accuracy}
                         </span>
-                      </div>
+                      </span>
+                    )}
+                    {problem.submissions && (
+                      <span className="text-muted-foreground">
+                        Submissions:{" "}
+                        <span className="font-semibold text-foreground">
+                          {problem.submissions}
+                        </span>
+                      </span>
+                    )}
+                    {problem.points && (
+                      <span className="text-muted-foreground">
+                        Points:{" "}
+                        <span className="font-semibold text-foreground">
+                          {problem.points}
+                        </span>
+                      </span>
                     )}
                   </div>
-                ))}
-              </div>
-            )}
+                </div>
 
-            {/* Expected Complexity Accordion */}
-            {problem.expectedComplexity && (
-              <div
-                className={cn(
-                  "rounded-lg border",
-                  theme === "dark" ? "border-white/10" : "border-slate-200",
-                )}
-              >
-                <button
-                  type="button"
+                {/* Description Text */}
+                <p
                   className={cn(
-                    "w-full flex items-center justify-between px-4 py-3 text-sm font-bold transition-colors rounded-lg",
-                    theme === "dark" ? "hover:bg-white/5" : "hover:bg-slate-50",
+                    "text-sm leading-relaxed whitespace-pre-wrap",
+                    theme === "dark" ? "text-muted-foreground" : "text-slate-600",
                   )}
-                  onClick={() => setExpandedComplexity((prev) => !prev)}
                 >
-                  <span className="flex items-center gap-2">
-                    <Zap className="h-3.5 w-3.5 text-amber-500" /> Expected
-                    Complexities
-                  </span>
-                  <ChevronDown
-                    className="h-4 w-4 text-muted-foreground transition-transform duration-200"
-                    style={{
-                      transform: expandedComplexity
-                        ? "rotate(180deg)"
-                        : "rotate(0deg)",
-                    }}
-                  />
-                </button>
-                {expandedComplexity && (
-                  <div
-                    className={cn(
-                      "px-4 pb-3 text-xs space-y-1 border-t",
-                      theme === "dark"
-                        ? "border-white/10 bg-white/5"
-                        : "border-slate-200 bg-slate-50",
-                    )}
-                  >
-                    <div className="pt-2 flex items-center gap-2">
-                      <Clock className="h-3 w-3 text-muted-foreground" /> Time:{" "}
-                      <code className="font-mono font-bold">
-                        {problem.expectedComplexity.time}
-                      </code>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <BarChart2 className="h-3 w-3 text-muted-foreground" />{" "}
-                      Space:{" "}
-                      <code className="font-mono font-bold">
-                        {problem.expectedComplexity.space}
-                      </code>
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
+                  {problem.description}
+                </p>
 
-            {/* Topic Tags Accordion */}
-            {problem.tags && problem.tags.length > 0 && (
-              <div
-                className={cn(
-                  "rounded-lg border",
-                  theme === "dark" ? "border-white/10" : "border-slate-200",
-                )}
-              >
-                <button
-                  type="button"
-                  className={cn(
-                    "w-full flex items-center justify-between px-4 py-3 text-sm font-bold transition-colors rounded-lg",
-                    theme === "dark" ? "hover:bg-white/5" : "hover:bg-slate-50",
-                  )}
-                  onClick={() => setExpandedTags((prev) => !prev)}
-                >
-                  <span className="flex items-center gap-2">
-                    <Tag className="h-3.5 w-3.5 text-blue-500" /> Topic Tags
-                  </span>
-                  <ChevronDown
-                    className="h-4 w-4 text-muted-foreground transition-transform duration-200"
-                    style={{
-                      transform: expandedTags
-                        ? "rotate(180deg)"
-                        : "rotate(0deg)",
-                    }}
-                  />
-                </button>
-                {expandedTags && (
-                  <div
-                    className={cn(
-                      "px-4 pb-3 pt-2 flex flex-wrap gap-2 border-t",
-                      theme === "dark"
-                        ? "border-white/10 bg-white/5"
-                        : "border-slate-200 bg-slate-50",
-                    )}
-                  >
-                    {problem.tags.map((tag) => (
-                      <span
-                        key={tag}
+                {/* Examples */}
+                {problem.examples && problem.examples.length > 0 && (
+                  <div className="flex flex-col gap-3">
+                    <h4 className="text-sm font-bold">Examples:</h4>
+                    {problem.examples.map((ex, i) => (
+                      <div
+                        key={i}
                         className={cn(
-                          "px-2.5 py-1 rounded-full text-xs font-semibold",
+                          "rounded-lg border p-3 text-xs font-mono space-y-1",
                           theme === "dark"
-                            ? "bg-primary/10 text-primary"
-                            : "bg-blue-50 text-blue-700 border border-blue-200",
+                            ? "border-white/10 bg-white/5"
+                            : "border-slate-200 bg-slate-50",
                         )}
                       >
-                        {tag}
-                      </span>
+                        <div>
+                          <span className="font-bold">Input:</span>{" "}
+                          <span className="text-muted-foreground">{ex.input}</span>
+                        </div>
+                        <div>
+                          <span className="font-bold">Output:</span>{" "}
+                          <span className="text-muted-foreground">{ex.output}</span>
+                        </div>
+                        {ex.explanation && (
+                          <div className="font-sans">
+                            <span className="font-bold font-sans">
+                              Explanation:
+                            </span>{" "}
+                            <span className="text-muted-foreground">
+                              {ex.explanation}
+                            </span>
+                          </div>
+                        )}
+                      </div>
                     ))}
                   </div>
                 )}
+
+                {/* Expected Complexity Accordion */}
+                {problem.expectedComplexity && (
+                  <div
+                    className={cn(
+                      "rounded-lg border",
+                      theme === "dark" ? "border-white/10" : "border-slate-200",
+                    )}
+                  >
+                    <button
+                      type="button"
+                      className={cn(
+                        "w-full flex items-center justify-between px-4 py-3 text-sm font-bold transition-colors rounded-lg",
+                        theme === "dark" ? "hover:bg-white/5" : "hover:bg-slate-50",
+                      )}
+                      onClick={() => setExpandedComplexity((prev) => !prev)}
+                    >
+                      <span className="flex items-center gap-2">
+                        <Zap className="h-3.5 w-3.5 text-amber-500" /> Expected
+                        Complexities
+                      </span>
+                      <ChevronDown
+                        className="h-4 w-4 text-muted-foreground transition-transform duration-200"
+                        style={{
+                          transform: expandedComplexity
+                            ? "rotate(180deg)"
+                            : "rotate(0deg)",
+                        }}
+                      />
+                    </button>
+                    {expandedComplexity && (
+                      <div
+                        className={cn(
+                          "px-4 pb-3 text-xs space-y-1 border-t",
+                          theme === "dark"
+                            ? "border-white/10 bg-white/5"
+                            : "border-slate-200 bg-slate-50",
+                        )}
+                      >
+                        <div className="pt-2 flex items-center gap-2">
+                          <Clock className="h-3 w-3 text-muted-foreground" /> Time:{" "}
+                          <code className="font-mono font-bold">
+                            {problem.expectedComplexity.time}
+                          </code>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <BarChart2 className="h-3 w-3 text-muted-foreground" />{" "}
+                          Space:{" "}
+                          <code className="font-mono font-bold">
+                            {problem.expectedComplexity.space}
+                          </code>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Topic Tags Accordion */}
+                {problem.tags && problem.tags.length > 0 && (
+                  <div
+                    className={cn(
+                      "rounded-lg border",
+                      theme === "dark" ? "border-white/10" : "border-slate-200",
+                    )}
+                  >
+                    <button
+                      type="button"
+                      className={cn(
+                        "w-full flex items-center justify-between px-4 py-3 text-sm font-bold transition-colors rounded-lg",
+                        theme === "dark" ? "hover:bg-white/5" : "hover:bg-slate-50",
+                      )}
+                      onClick={() => setExpandedTags((prev) => !prev)}
+                    >
+                      <span className="flex items-center gap-2">
+                        <Tag className="h-3.5 w-3.5 text-blue-500" /> Topic Tags
+                      </span>
+                      <ChevronDown
+                        className="h-4 w-4 text-muted-foreground transition-transform duration-200"
+                        style={{
+                          transform: expandedTags
+                            ? "rotate(180deg)"
+                            : "rotate(0deg)",
+                        }}
+                      />
+                    </button>
+                    {expandedTags && (
+                      <div
+                        className={cn(
+                          "px-4 pb-3 pt-2 flex flex-wrap gap-2 border-t",
+                          theme === "dark"
+                            ? "border-white/10 bg-white/5"
+                            : "border-slate-200 bg-slate-50",
+                        )}
+                      >
+                        {problem.tags.map((tag) => (
+                          <span
+                            key={tag}
+                            className={cn(
+                              "px-2.5 py-1 rounded-full text-xs font-semibold",
+                              theme === "dark"
+                                ? "bg-primary/10 text-primary"
+                                : "bg-blue-50 text-blue-700 border border-blue-200",
+                            )}
+                          >
+                            {tag}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {leftTab === "testcases" && (
+              <div className="flex flex-col gap-4 p-5">
+                {/* Result Banners */}
+                {hasSubmissionResult && (
+                  <div
+                    className={cn(
+                      "rounded-xl border p-4 flex items-center justify-between shadow-sm animate-in fade-in slide-in-from-top-2 duration-300",
+                      theme === "dark"
+                        ? "border-emerald-500/30 bg-emerald-500/10"
+                        : "border-emerald-200 bg-emerald-50",
+                    )}
+                  >
+                    <div className="flex items-center gap-3">
+                      <CheckCircle2 className="h-6 w-6 text-emerald-500 shrink-0" />
+                      <div>
+                        <p className="text-sm font-bold text-emerald-500">
+                          Accepted
+                        </p>
+                        <p
+                          className={cn(
+                            "text-xs mt-0.5",
+                            theme === "dark" ? "text-white/50" : "text-slate-500",
+                          )}
+                        >
+                          76 / 76 test cases passed
+                        </p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm font-black text-emerald-500">
+                        76/76
+                      </p>
+                      <p
+                        className={cn(
+                          "text-[10px] mt-0.5",
+                          theme === "dark" ? "text-white/30" : "text-slate-400",
+                        )}
+                      >
+                        68 ms · 42.5 MB
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {hasRunResults && !hasSubmissionResult && (
+                  <div
+                    className={cn(
+                      "rounded-xl border p-3 flex items-center gap-3 shadow-sm animate-in fade-in slide-in-from-top-1 duration-200",
+                      theme === "dark"
+                        ? "border-blue-500/20 bg-blue-500/5"
+                        : "border-blue-200 bg-blue-50",
+                    )}
+                  >
+                    <div className="h-7 w-7 rounded-full bg-blue-500/15 flex items-center justify-center">
+                      <Play className="h-3.5 w-3.5 text-blue-500" />
+                    </div>
+                    <span className="text-sm font-bold text-blue-500">
+                      3 / 3 Sample Tests Passed
+                    </span>
+                  </div>
+                )}
+
+                {/* Sub-content: Results vs Cases Editor */}
+                {hasRunResults || hasSubmissionResult ? (
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between mb-1">
+                      <h4 className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                        Test Results
+                      </h4>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 text-[10px] font-bold uppercase"
+                        onClick={() => {
+                          setHasRunResults(false);
+                          setHasSubmissionResult(false);
+                        }}
+                      >
+                        Reset
+                      </Button>
+                    </div>
+                    {[
+                      {
+                        id: 1,
+                        input: "nums = [2,7,11,15], target = 9",
+                        expected: "[0,1]",
+                        got: "[0,1]",
+                        pass: true,
+                        time: "1 ms",
+                        mem: "42.3 MB",
+                      },
+                      {
+                        id: 2,
+                        input: "nums = [3,2,4], target = 6",
+                        expected: "[1,2]",
+                        got: "[1,2]",
+                        pass: true,
+                        time: "0 ms",
+                        mem: "41.9 MB",
+                      },
+                      {
+                        id: 3,
+                        input: "nums = [3,3], target = 6",
+                        expected: "[0,1]",
+                        got: "[0,1]",
+                        pass: true,
+                        time: "0 ms",
+                        mem: "42.1 MB",
+                      },
+                    ].map((tc) => (
+                      <div
+                        key={tc.id}
+                        className={cn(
+                          "rounded-xl border p-4 font-mono text-xs space-y-2.5 transition-all",
+                          tc.pass
+                            ? theme === "dark"
+                              ? "border-emerald-500/10 bg-emerald-500/[0.02]"
+                              : "border-emerald-200 bg-emerald-50/30"
+                            : theme === "dark"
+                              ? "border-rose-500/10 bg-rose-500/[0.02]"
+                              : "border-rose-200 bg-rose-50/30",
+                        )}
+                      >
+                        <div className="flex items-center justify-between mb-1">
+                          <span
+                            className={cn(
+                              "text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full",
+                              theme === "dark"
+                                ? "bg-white/10 text-white/50"
+                                : "bg-slate-200 text-slate-500",
+                            )}
+                          >
+                            Case {tc.id}
+                          </span>
+                          <span
+                            className={cn(
+                              "text-[10px] font-bold uppercase tracking-widest flex items-center gap-1.5",
+                              tc.pass ? "text-emerald-500" : "text-rose-500",
+                            )}
+                          >
+                            {tc.pass ? (
+                              <CheckCircle2 className="h-3 w-3" />
+                            ) : (
+                              <XCircle className="h-3 w-3" />
+                            )}
+                            {tc.pass ? "Passed" : "Failed"}
+                          </span>
+                        </div>
+                        <div className="grid gap-2">
+                          <div className="flex items-start gap-2">
+                            <span className="w-16 shrink-0 font-bold opacity-40">
+                              Input
+                            </span>
+                            <span
+                              className={
+                                theme === "dark"
+                                  ? "text-white/80"
+                                  : "text-slate-700"
+                              }
+                            >
+                              {tc.input}
+                            </span>
+                          </div>
+                          <div className="flex items-start gap-2">
+                            <span className="w-16 shrink-0 font-bold opacity-40">
+                              Expected
+                            </span>
+                            <span className="text-emerald-500">
+                              {tc.expected}
+                            </span>
+                          </div>
+                          <div className="flex items-start gap-2">
+                            <span className="w-16 shrink-0 font-bold opacity-40">
+                              Got
+                            </span>
+                            <span
+                              className={
+                                tc.pass ? "text-emerald-500" : "text-rose-500"
+                              }
+                            >
+                              {tc.got}
+                            </span>
+                          </div>
+                        </div>
+                        <div
+                          className={cn(
+                            "flex gap-4 pt-2 border-t text-[10px]",
+                            theme === "dark"
+                              ? "border-white/5 text-white/20"
+                              : "border-slate-200 text-slate-400",
+                          )}
+                        >
+                          <span className="flex items-center gap-1">
+                            <Clock className="h-2.5 w-2.5" /> {tc.time}
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <Zap className="h-2.5 w-2.5" /> {tc.mem}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between mb-1">
+                      <h4 className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                        Test Cases
+                      </h4>
+                    </div>
+                    {[
+                      {
+                        id: 1,
+                        input: "nums = [2,7,11,15], target = 9",
+                        output: "[0,1]",
+                      },
+                      {
+                        id: 2,
+                        input: "nums = [3,2,4], target = 6",
+                        output: "[1,2]",
+                      },
+                      {
+                        id: 3,
+                        input: "nums = [3,3], target = 6",
+                        output: "[0,1]",
+                      },
+                    ].map((tc) => (
+                      <div
+                        key={tc.id}
+                        className={cn(
+                          "rounded-xl border p-4 font-mono text-xs space-y-2.5 transition-all group hover:border-primary/30",
+                          theme === "dark"
+                            ? "border-white/5 bg-white/[0.02]"
+                            : "border-slate-200 bg-white shadow-sm",
+                        )}
+                      >
+                        <div className="flex items-center gap-2 mb-1">
+                          <span
+                            className={cn(
+                              "text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full transition-colors",
+                              theme === "dark"
+                                ? "bg-white/5 text-white/30 group-hover:bg-primary/20 group-hover:text-primary"
+                                : "bg-slate-100 text-slate-400 group-hover:bg-primary/10 group-hover:text-primary",
+                            )}
+                          >
+                            Case {tc.id}
+                          </span>
+                        </div>
+                        <div className="grid gap-2">
+                          <div className="flex items-start gap-2">
+                            <span className="w-16 shrink-0 font-bold opacity-30">
+                              Input
+                            </span>
+                            <code
+                              className={
+                                theme === "dark"
+                                  ? "text-emerald-400/80"
+                                  : "text-emerald-700/80"
+                              }
+                            >
+                              {tc.input}
+                            </code>
+                          </div>
+                          <div className="flex items-start gap-2">
+                            <span className="w-16 shrink-0 font-bold opacity-30">
+                              Output
+                            </span>
+                            <code
+                              className={
+                                theme === "dark"
+                                  ? "text-blue-400/80"
+                                  : "text-blue-700/80"
+                              }
+                            >
+                              {tc.output}
+                            </code>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="w-full border border-dashed text-xs text-muted-foreground hover:border-primary/50 hover:text-primary"
+                    >
+                      + Add Test Case
+                    </Button>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {["editorial", "solutions", "submissions"].includes(leftTab) && (
+              <div className="flex-1 flex flex-col items-center justify-center p-10 text-center opacity-40 h-full min-h-[300px]">
+                <div className="h-16 w-16 rounded-2xl bg-muted flex items-center justify-center mb-4">
+                  {leftTab === "editorial" && <BookOpen className="h-8 w-8" />}
+                  {leftTab === "solutions" && (
+                    <FlaskConical className="h-8 w-8" />
+                  )}
+                  {leftTab === "submissions" && <History className="h-8 w-8" />}
+                </div>
+                <h3 className="text-sm font-bold uppercase tracking-widest">
+                  {leftTab}
+                </h3>
+                <p className="text-xs mt-2 max-w-[200px]">
+                  This content is coming soon in the next update.
+                </p>
               </div>
             )}
           </div>
-          {/* /content wrapper */}
+          {/* /content wrapper + collapsible outer */}
+
+
         </div>
-        {/* /content wrapper + collapsible outer */}
 
         {/* Center: Editor (+ overlay AI Review) */}
         <div
@@ -672,9 +1021,7 @@ Each hint should be 1-2 sentences. Return ONLY the JSON array, no markdown.`;
           <div
             className={cn(
               "flex items-center justify-between px-4 py-2 border-b",
-              theme === "dark"
-                ? "bg-[#252526] border-white/5"
-                : "bg-slate-100 border-slate-200",
+              theme === "dark" ? "bg-[#252526] border-white/5" : "bg-slate-100 border-slate-200",
             )}
           >
             <div className="flex items-center gap-2">
@@ -726,349 +1073,6 @@ Each hint should be 1-2 sentences. Return ONLY the JSON array, no markdown.`;
                 fontLigatures: true,
               }}
             />
-          </div>
-
-          {/* Console / Test Cases — collapsed by default, opens on Run/Submit */}
-          <div
-            className={cn(
-              "shrink-0 border-t flex flex-col transition-all duration-300 ease-in-out overflow-hidden",
-              theme === "dark"
-                ? "border-white/10 bg-[#1e1e1e]"
-                : "border-slate-200 bg-slate-50",
-              showConsole ? "h-48" : "h-9",
-            )}
-          >
-            {/* Header — always visible, clicking chevron toggles panel */}
-            <div
-              className={cn(
-                "flex items-center h-9 border-b select-none shrink-0",
-                theme === "dark"
-                  ? "border-white/5 bg-[#252526]"
-                  : "border-slate-200 bg-slate-100",
-              )}
-            >
-              {/* Tabs */}
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setShowConsole(true);
-                }}
-                className={cn(
-                  "h-full px-4 text-xs font-bold uppercase tracking-wider border-r transition-colors",
-                  theme === "dark" ? "border-white/5" : "border-slate-200",
-                  showConsole
-                    ? theme === "dark"
-                      ? "text-white border-b-2 border-b-primary"
-                      : "text-slate-900 border-b-2 border-b-primary"
-                    : theme === "dark"
-                      ? "text-white/40 hover:text-white"
-                      : "text-slate-400 hover:text-slate-700",
-                )}
-              >
-                Test Cases
-              </button>
-              <div className="flex-1" />
-              <button
-                type="button"
-                onClick={() => setShowConsole((prev) => !prev)}
-                className="px-3 h-full flex items-center"
-              >
-                <ChevronDown
-                  className="h-4 w-4 text-muted-foreground transition-transform duration-200"
-                  style={{
-                    transform: showConsole ? "rotate(0deg)" : "rotate(180deg)",
-                  }}
-                />
-              </button>
-            </div>
-
-            {/* Body — only visible when open */}
-            {showConsole && (
-              <div className="flex-1 p-3 overflow-y-auto">
-                <div className="flex flex-col gap-2">
-                  {/* Submission / Run result banner */}
-                  {hasSubmissionResult && (
-                    <div
-                      className={cn(
-                        "rounded-lg border p-3 flex items-center justify-between mb-1",
-                        theme === "dark"
-                          ? "border-emerald-500/30 bg-emerald-500/10"
-                          : "border-emerald-200 bg-emerald-50",
-                      )}
-                    >
-                      <div className="flex items-center gap-3">
-                        <CheckCircle2 className="h-5 w-5 text-emerald-500 shrink-0" />
-                        <div>
-                          <p className="text-sm font-bold text-emerald-500">
-                            Accepted
-                          </p>
-                          <p
-                            className={cn(
-                              "text-xs",
-                              theme === "dark"
-                                ? "text-white/50"
-                                : "text-slate-500",
-                            )}
-                          >
-                            76 / 76 test cases passed
-                          </p>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-xs font-bold text-emerald-500">
-                          76/76
-                        </p>
-                        <p
-                          className={cn(
-                            "text-[10px]",
-                            theme === "dark"
-                              ? "text-white/30"
-                              : "text-slate-400",
-                          )}
-                        >
-                          Runtime: 68 ms · Memory: 42.5 MB
-                        </p>
-                      </div>
-                    </div>
-                  )}
-                  {hasRunResults && !hasSubmissionResult && (
-                    <div
-                      className={cn(
-                        "rounded-lg border p-2.5 flex items-center gap-2 mb-1",
-                        theme === "dark"
-                          ? "border-blue-500/20 bg-blue-500/5"
-                          : "border-blue-200 bg-blue-50",
-                      )}
-                    >
-                      <Play className="h-3.5 w-3.5 text-blue-500 shrink-0" />
-                      <span className="text-xs font-semibold text-blue-500">
-                        3 / 3 Sample Tests Passed
-                      </span>
-                    </div>
-                  )}
-                  {/* Show results if available, otherwise show test case definitions */}
-                  {hasRunResults || hasSubmissionResult
-                    ? [
-                        {
-                          id: 1,
-                          input: "nums = [2,7,11,15], target = 9",
-                          expected: "[0,1]",
-                          got: "[0,1]",
-                          pass: true,
-                          time: "1 ms",
-                          mem: "42.3 MB",
-                        },
-                        {
-                          id: 2,
-                          input: "nums = [3,2,4], target = 6",
-                          expected: "[1,2]",
-                          got: "[1,2]",
-                          pass: true,
-                          time: "0 ms",
-                          mem: "41.9 MB",
-                        },
-                        {
-                          id: 3,
-                          input: "nums = [3,3], target = 6",
-                          expected: "[0,1]",
-                          got: "[0,1]",
-                          pass: true,
-                          time: "0 ms",
-                          mem: "42.1 MB",
-                        },
-                      ].map((tc) => (
-                        <div
-                          key={tc.id}
-                          className={cn(
-                            "rounded-lg border p-3 font-mono text-xs space-y-1.5",
-                            tc.pass
-                              ? theme === "dark"
-                                ? "border-emerald-500/20 bg-emerald-500/5"
-                                : "border-emerald-200 bg-emerald-50"
-                              : theme === "dark"
-                                ? "border-rose-500/20 bg-rose-500/5"
-                                : "border-rose-200 bg-rose-50",
-                          )}
-                        >
-                          <div className="flex items-center justify-between mb-1">
-                            <span
-                              className={cn(
-                                "text-[10px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded",
-                                theme === "dark"
-                                  ? "bg-white/10 text-white/50"
-                                  : "bg-slate-100 text-slate-500",
-                              )}
-                            >
-                              Case {tc.id}
-                            </span>
-                            <span
-                              className={cn(
-                                "text-[10px] font-bold uppercase tracking-widest flex items-center gap-1",
-                                tc.pass ? "text-emerald-500" : "text-rose-500",
-                              )}
-                            >
-                              {tc.pass ? (
-                                <CheckCircle2 className="h-3 w-3" />
-                              ) : (
-                                <XCircle className="h-3 w-3" />
-                              )}
-                              {tc.pass ? "Passed" : "Failed"}
-                            </span>
-                          </div>
-                          <div>
-                            <span
-                              className={cn(
-                                "font-bold",
-                                theme === "dark"
-                                  ? "text-white/50"
-                                  : "text-slate-500",
-                              )}
-                            >
-                              Input:{" "}
-                            </span>
-                            <span
-                              className={
-                                theme === "dark"
-                                  ? "text-white/70"
-                                  : "text-slate-700"
-                              }
-                            >
-                              {tc.input}
-                            </span>
-                          </div>
-                          <div>
-                            <span
-                              className={cn(
-                                "font-bold",
-                                theme === "dark"
-                                  ? "text-white/50"
-                                  : "text-slate-500",
-                              )}
-                            >
-                              Expected:{" "}
-                            </span>
-                            <span className="text-emerald-500">
-                              {tc.expected}
-                            </span>
-                          </div>
-                          <div>
-                            <span
-                              className={cn(
-                                "font-bold",
-                                theme === "dark"
-                                  ? "text-white/50"
-                                  : "text-slate-500",
-                              )}
-                            >
-                              Got:{" "}
-                            </span>
-                            <span
-                              className={
-                                tc.pass ? "text-emerald-500" : "text-rose-500"
-                              }
-                            >
-                              {tc.got}
-                            </span>
-                          </div>
-                          <div
-                            className={cn(
-                              "flex gap-4 pt-1 border-t text-[10px]",
-                              theme === "dark"
-                                ? "border-white/10 text-white/30"
-                                : "border-slate-200 text-slate-400",
-                            )}
-                          >
-                            <span>⏱ {tc.time}</span>
-                            <span>💾 {tc.mem}</span>
-                          </div>
-                        </div>
-                      ))
-                    : [
-                        {
-                          id: 1,
-                          input: "nums = [2,7,11,15], target = 9",
-                          output: "[0,1]",
-                        },
-                        {
-                          id: 2,
-                          input: "nums = [3,2,4], target = 6",
-                          output: "[1,2]",
-                        },
-                        {
-                          id: 3,
-                          input: "nums = [3,3], target = 6",
-                          output: "[0,1]",
-                        },
-                      ].map((tc) => (
-                        <div
-                          key={tc.id}
-                          className={cn(
-                            "rounded-lg border p-3 font-mono text-xs space-y-1.5",
-                            theme === "dark"
-                              ? "border-white/10 bg-black/20"
-                              : "border-slate-200 bg-white",
-                          )}
-                        >
-                          <div className="flex items-center gap-2 mb-1">
-                            <span
-                              className={cn(
-                                "text-[10px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded",
-                                theme === "dark"
-                                  ? "bg-white/10 text-white/50"
-                                  : "bg-slate-100 text-slate-500",
-                              )}
-                            >
-                              Case {tc.id}
-                            </span>
-                          </div>
-                          <div>
-                            <span
-                              className={cn(
-                                "font-bold",
-                                theme === "dark"
-                                  ? "text-white/60"
-                                  : "text-slate-500",
-                              )}
-                            >
-                              Input:{" "}
-                            </span>
-                            <span
-                              className={
-                                theme === "dark"
-                                  ? "text-emerald-400"
-                                  : "text-emerald-700"
-                              }
-                            >
-                              {tc.input}
-                            </span>
-                          </div>
-                          <div>
-                            <span
-                              className={cn(
-                                "font-bold",
-                                theme === "dark"
-                                  ? "text-white/60"
-                                  : "text-slate-500",
-                              )}
-                            >
-                              Expected:{" "}
-                            </span>
-                            <span
-                              className={
-                                theme === "dark"
-                                  ? "text-blue-400"
-                                  : "text-blue-700"
-                              }
-                            >
-                              {tc.output}
-                            </span>
-                          </div>
-                        </div>
-                      ))}
-                </div>
-              </div>
-            )}
           </div>
 
           {/* AI Review Overlay — slides in over the editor, description untouched */}
