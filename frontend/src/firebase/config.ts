@@ -15,8 +15,10 @@ const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const db = getFirestore(app);
 
+export const isDemoMode = import.meta.env.VITE_DEMO_MODE === "true";
+
 // Connect to emulators in development/localhost environments
-if (import.meta.env.DEV || window.location.hostname === "localhost") {
+if (!isDemoMode && (import.meta.env.DEV || window.location.hostname === "localhost")) {
   connectAuthEmulator(auth, "http://localhost:9099");
   connectFirestoreEmulator(db, "localhost", 8080);
 }

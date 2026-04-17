@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react"
 import { collection, onSnapshot, query, orderBy, addDoc, getDocs } from "firebase/firestore"
-import { db } from "@/firebase/config"
+import { db, isDemoMode } from "@/firebase/config"
 import { Problem } from "@/types/problem"
 import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -13,6 +13,32 @@ export const ProblemList: React.FC = () => {
   const navigate = useNavigate()
 
   useEffect(() => {
+    if (isDemoMode) {
+      // Mock Problem List
+      setProblems([
+        {
+          id: "two-sum",
+          title: "Two Sum",
+          description: "Given an array of integers `nums` and an integer `target`, return indices of the two numbers such that they add up to `target`.",
+          difficulty: "Easy",
+          category: "Arrays",
+          order: 1,
+          starterCode: { javascript: "", python: "", cpp: "" }
+        },
+        {
+          id: "reverse-int",
+          title: "Reverse Integer",
+          description: "Given a signed 32-bit integer `x`, return `x` with its digits reversed.",
+          difficulty: "Medium",
+          category: "Math",
+          order: 2,
+          starterCode: { javascript: "", python: "", cpp: "" }
+        }
+      ] as Problem[])
+      setLoading(false)
+      return
+    }
+
     const q = query(collection(db, "problems"), orderBy("order", "asc"))
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const problemData: Problem[] = snapshot.docs.map((doc) => ({
