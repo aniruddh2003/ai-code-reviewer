@@ -16,6 +16,8 @@ export const auth = getAuth(app);
 export const db = getFirestore(app);
 
 export const isDemoMode = import.meta.env.VITE_DEMO_MODE === "true";
+// Forcing false if not explicitly set to true in env
+// export const isDemoMode = false; 
 
 // Connect to emulators in development/localhost environments
 if (!isDemoMode && (import.meta.env.DEV || window.location.hostname === "localhost")) {

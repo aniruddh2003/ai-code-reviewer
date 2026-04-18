@@ -14,7 +14,7 @@ async function reviewCode(code, executionResult = null) {
         const failures = executionResult.testResults.filter(r => r.status === "FAIL");
         prompt = `The following test cases FAILED. Analyze the code logic and identify the underlying flaw or missing edge case:\n\n`;
         failures.forEach(f => {
-          prompt += `- Test: ${f.name}\n  Expected: ${f.expected}\n  Actual: ${f.actual}\n`;
+          prompt += `- ${f.name || 'Test'}: ${f.input}\n  Expected: ${f.expected}\n  Actual: ${f.actual}\n`;
         });
         prompt += `\nCode:\n${code}`;
       } else {

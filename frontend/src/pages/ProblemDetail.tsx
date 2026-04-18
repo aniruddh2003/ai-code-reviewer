@@ -63,155 +63,34 @@ export const ProblemDetail: React.FC = () => {
   useEffect(() => {
     const fetchProblem = async () => {
       if (!id) return;
+      setLoading(true);
+      
+      try {
+        const docRef = doc(db, "problems", id);
+        const docSnap = await getDoc(docRef);
 
-      if (isDemoMode) {
-        // Mock Problem Data Store
-        const mockProblems: Record<string, Problem> = {
-          "two-sum": {
-            id: "two-sum",
-            title: "Two Sum",
-            description:
-              "Given an array of integers nums and an integer target, return indices of the two numbers such that they add up to target.\n\nYou may assume that each input would have exactly one solution, and you may not use the same element twice.\n\nYou can return the answer in any order.",
-            difficulty: "Easy",
-            category: "Arrays",
-            order: 1,
-            accuracy: "45.2%",
-            submissions: "12M+",
-            points: 2,
-            examples: [
-              {
-                input: "nums = [2,7,11,15], target = 9",
-                output: "[0,1]",
-                explanation:
-                  "Because nums[0] + nums[1] == 9, we return [0, 1].",
-              },
-              {
-                input: "nums = [3,2,4], target = 6",
-                output: "[1,2]",
-                explanation:
-                  "Because nums[1] + nums[2] == 6, we return [1, 2].",
-              },
-              { input: "nums = [3,3], target = 6", output: "[0,1]" },
-            ],
-            expectedComplexity: { time: "O(n)", space: "O(n)" },
-            tags: ["Array", "Hash Table"],
-            starterCode: {
-              javascript:
-                "/**\n * @param {number[]} nums\n * @param {number} target\n * @return {number[]}\n */\nvar twoSum = function(nums, target) {\n    \n};",
-              python:
-                "class Solution:\n    def twoSum(self, nums: List[int], target: int) -> List[int]:\n        pass",
-              cpp: "class Solution {\npublic:\n    vector<int> twoSum(vector<int>& nums, int target) {\n        \n    }\n};",
-            },
-            editorial: {
-              approach: "We can solve this efficiently in one pass using a Hash Map. As we iterate through the array, we check if the complement (target - nums[i]) already exists in our map. If it does, we've found our pair. If not, we store the current number's value and its index in the map for future lookups.",
-              complexity: {
-                time: "O(n)",
-                space: "O(n)"
-              },
-              solutionCode: {
-                javascript: "var twoSum = function(nums, target) {\n    const map = new Map();\n    for (let i = 0; i < nums.length; i++) {\n        const complement = target - nums[i];\n        if (map.has(complement)) {\n            return [map.get(complement), i];\n        }\n        map.set(nums[i], i);\n    }\n};",
-                python: "class Solution:\n    def twoSum(self, nums: List[int], target: int) -> List[int]:\n        prevMap = {} # val -> index\n\n        for i, n in enumerate(nums):\n            diff = target - n\n            if diff in prevMap:\n                return [prevMap[diff], i]\n            prevMap[n] = i",
-                cpp: "class Solution {\npublic:\n    vector<int> twoSum(vector<int>& nums, int target) {\n        unordered_map<int, int> prevMap;\n\n        for (int i = 0; i < nums.size(); i++) {\n            int diff = target - nums[i];\n            if (prevMap.count(diff)) {\n                return {prevMap[diff], i};\n            }\n            prevMap[nums[i]] = i;\n        }\n        return {};\n    }\n};"
-              }
-            }
-          },
-          "reverse-int": {
-            id: "reverse-int",
-            title: "Reverse Integer",
-            description:
-              "Given a signed 32-bit integer x, return x with its digits reversed.\n\nIf reversing x causes the value to go outside the signed 32-bit integer range [-2³¹, 2³¹ - 1], then return 0.\n\nAssume the environment does not allow you to store 64-bit integers (signed or unsigned).",
-            difficulty: "Medium",
-            category: "Math",
-            order: 2,
-            accuracy: "26.8%",
-            submissions: "8M+",
-            points: 4,
-            examples: [
-              { input: "x = 123", output: "321" },
-              { input: "x = -123", output: "-321" },
-              {
-                input: "x = 120",
-                output: "21",
-                explanation: "Trailing zero is dropped after reversing.",
-              },
-            ],
-            expectedComplexity: { time: "O(log x)", space: "O(1)" },
-            tags: ["Math"],
-            starterCode: {
-              javascript:
-                "/**\n * @param {number} x\n * @return {number}\n */\nvar reverse = function(x) {\n    \n};",
-              python:
-                "class Solution:\n    def reverse(self, x: int) -> int:\n        pass",
-              cpp: "class Solution {\npublic:\n    int reverse(int x) {\n        \n    }\n};",
-            },
-            editorial: {
-              approach: "We can reverse the integer by repeatedly popping the last digit and pushing it onto the end of the new integer. To handle the signed 32-bit limit, we check for overflow before multiplying the result by 10 and adding the new digit.",
-              complexity: {
-                time: "O(log x)",
-                space: "O(1)"
-              },
-              solutionCode: {
-                javascript: "var reverse = function(x) {\n    const isNegative = x < 0;\n    x = Math.abs(x);\n    let result = 0;\n    while (x > 0) {\n        const digit = x % 10;\n        result = (result * 10) + digit;\n        x = Math.floor(x / 10);\n    }\n    if (result > Math.pow(2, 31) - 1) return 0;\n    return isNegative ? -result : result;\n};",
-                python: "class Solution:\n    def reverse(self, x: int) -> int:\n        res = 0\n        sign = -1 if x < 0 else 1\n        x = abs(x)\n\n        while x > 0:\n            digit = x % 10\n            res = (res * 10) + digit\n            x //= 10\n\n        res *= sign\n        if res < -2**31 or res > 2**31 - 1:\n            return 0\n        return res",
-                cpp: "class Solution {\npublic:\n    int reverse(int x) {\n        int res = 0;\n        while (x != 0) {\n            if (res > INT_MAX / 10 || res < INT_MIN / 10) return 0;\n            res = res * 10 + x % 10;\n            x /= 10;\n        }\n        return res;\n    }\n};"
-              }
-            }
-          },
-        };
-
-        // Mock Submissions
-        setSubmissions([
-          {
-            id: "sub-1",
-            userId: "demo-user",
-            problemId: "two-sum",
-            code: "var twoSum = function(nums, target) {\n    for (let i = 0; i < nums.length; i++) {\n        for (let j = i + 1; j < nums.length; j++) {\n            if (nums[i] + nums[j] === target) return [i, j];\n        }\n    }\n};",
-            language: "JavaScript",
-            status: "accepted",
-            createdAt: { toDate: () => new Date("2023-12-01T10:00:00Z") },
-            runtime: "12 ms",
-            memory: "11.4 MB"
-          },
-          {
-            id: "sub-2",
-            userId: "demo-user",
-            problemId: "two-sum",
-            code: "class Solution:\n    def twoSum(self, nums: List[int], target: int) -> List[int]:\n        # Brute force\n        for i in range(len(nums)):\n            for j in range(i + 1, len(nums)):\n                if nums[i] + nums[j] == target:\n                    return [i, j]",
-            language: "Python",
-            status: "accepted",
-            createdAt: { toDate: () => new Date("2023-03-28T14:30:00Z") },
-            runtime: "607 ms",
-            memory: "10.1 MB"
-          }
-        ] as any);
-
-        const found = mockProblems[id as string] || mockProblems["two-sum"];
-        setProblem(found);
+        if (docSnap.exists()) {
+          const data = { id: docSnap.id, ...docSnap.data() } as Problem;
+          setProblem(data);
+          setCode(
+            data.starterCode[language as keyof typeof data.starterCode] || "",
+          );
+        }
+      } catch (error) {
+        console.error("Error fetching problem:", error);
+      } finally {
         setLoading(false);
-        return;
       }
-
-      const docRef = doc(db, "problems", id);
-      const docSnap = await getDoc(docRef);
-
-      if (docSnap.exists()) {
-        const data = { id: docSnap.id, ...docSnap.data() } as Problem;
-        setProblem(data);
-        setCode(
-          data.starterCode[language as keyof typeof data.starterCode] || "",
-        );
-      }
-      setLoading(false);
     };
 
     fetchProblem();
-  }, [id]);
+  }, [id, language]);
 
   // Shared Submission Handler (T011, T015)
   const executeCode = async (type: "run" | "submit") => {
     if (!problem || !id) return;
 
-    if (!user && !isDemoMode) {
+    if (!user) {
       alert("Please login to execute code!");
       return;
     }
@@ -220,54 +99,6 @@ export const ProblemDetail: React.FC = () => {
     setLeftTab("testcases");
     if (type === "run") setHasRunResults(true);
     else setHasSubmissionResult(true);
-
-    if (isDemoMode) {
-      // Simulation for Demo Mode
-      setTimeout(() => {
-        const isFailure = code.includes("// fail") || code.includes("// tle");
-        const status = code.includes("// tle") ? "time_limit_exceeded" : (isFailure ? "wrong_answer" : "accepted");
-
-        const mockResult: any = {
-          id: "mock-sub-" + Date.now(),
-          userId: "demo-user",
-          problemId: id,
-          code,
-          language,
-          status: status,
-          type,
-          runtime: status === "time_limit_exceeded" ? "15000ms" : "45ms",
-          memory: "12MB",
-          createdAt: { toDate: () => new Date() },
-          output: status === "time_limit_exceeded" ? "Time Limit Exceeded" : (isFailure ? "Wrong Answer" : "All tests passed"),
-          testResults: problem.examples?.map((ex, idx) => ({
-            input: ex.input,
-            actual: (idx === 0 && isFailure) ? (code.includes("// tle") ? "Time Limit Exceeded" : "[wrong, answer]") : ex.output,
-            expected: ex.output,
-            status: (idx === 0 && isFailure) ? (code.includes("// tle") ? "TLE" : "FAIL") : "PASS",
-            runtime: 12,
-            memory: 1.2
-          })),
-        };
-
-        if (type === "submit") {
-          mockResult.feedback = {
-            score: isFailure ? 40 : 92,
-            summary: isFailure ? "Your solution failed some test cases. Check the output for details." : "Excellent implementation! Your solution uses a Hash Map to achieve O(n) time complexity.",
-            reviewedBy: "AI-Antigravity",
-          };
-        }
-
-        setSubmission(mockResult);
-        setSubmitting(false);
-
-        // T024: Auto-switch to Error tab on failure
-        if (isFailure) {
-          setLeftTab("error");
-          setShowDescription(true);
-        }
-      }, 2000);
-      return;
-    }
 
     try {
       const subRef = await addDoc(collection(db, "submissions"), {

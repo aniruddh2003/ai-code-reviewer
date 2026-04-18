@@ -10,6 +10,35 @@ const {
   workerActive,
 } = require("../metrics");
 
+/**
+ * Transforms human-readable LeetCode inputs into machine-readable newline-separated JSON
+ * Example: "nums = [2,7,11,15], target = 9" -> "[2,7,11,15]\n9"
+ */
+function transformInput(input) {
+  if (!input || typeof input !== "string") return input;
+  
+  // If it already has multiple lines, assume it's machine-readable
+  if (input.includes("\n")) return input;
+  
+  // Look for LeetCode-style assignments: name = value, name = value
+  if (input.includes("=")) {
+    try {
+      // Split by comma BUT ignore commas inside brackets [1,2,3]
+      const parts = input.split(/,(?![^\[]*\])/);
+      const values = parts.map(p => {
+        const eqIdx = p.indexOf("=");
+        return eqIdx !== -1 ? p.substring(eqIdx + 1).trim() : p.trim();
+      });
+      return values.join("\n");
+    } catch (e) {
+      console.warn("Input transformation failed, using raw input:", e);
+      return input;
+    }
+  }
+  
+  return input;
+}
+
 // Initialize Firebase Admin
 if (!admin.apps.length) {
   admin.initializeApp({
@@ -69,7 +98,10 @@ const worker = new Worker(
       }
       // 2. Execute code against test cases
       for (const tc of activeTestCases) {
-        const execution = await runInDocker(code, language, tc.input || "");
+        const rawInput = transformInput(tc.input || tc.inputStr || "");
+        console.log(`📡 [${language}] Running case: ${tc.name || 'Sample'} with input:`, rawInput.replace(/\n/g, " | "));
+        
+        const execution = await runInDocker(code, language, rawInput);
         const actual = execution.output || "";
         const expectedStr = (tc.output || tc.expected || "").toString().trim();
 
@@ -86,7 +118,8 @@ const worker = new Worker(
         if (status !== "PASS") result.allPassed = false;
         
         result.testResults.push({
-          input: tc.input,
+          name: tc.name || `Case ${result.testResults.length + 1}`,
+          input: tc.input || tc.inputStr || "No input",
           actual: (status === "TLE" || status === "MLE") ? execution.output : actual.trim(),
           expected: expectedStr,
           status,
@@ -115,7 +148,7 @@ const worker = new Worker(
         else if (firstFail.status === "FAIL") result.status = "wrong_answer";
         else result.status = "runtime_error";
         
-        result.output = `Failed on test case: ${firstFail.status}`;
+        result.output = firstFail.actual || firstFail.status;
       }
       
       let aiFeedback;

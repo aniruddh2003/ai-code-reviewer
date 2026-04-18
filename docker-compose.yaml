@@ -35,6 +35,9 @@ services:
       - redis
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
+      - ./api:/app/api
+      - ./package.json:/app/package.json
+      - ./package-lock.json:/app/package-lock.json
 
   worker:
     build:
@@ -47,6 +50,10 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
       - code-exec-share:/shared
       - ./service-account.json:/app/service-account.json
+      - ./worker:/app/worker
+      - ./resources:/app/resources
+      - ./package.json:/app/package.json
+      - ./package-lock.json:/app/package-lock.json
     environment:
       - REDIS_HOST=redis
       - GOOGLE_APPLICATION_CREDENTIALS=/app/service-account.json
@@ -63,6 +70,9 @@ services:
       - GOOGLE_APPLICATION_CREDENTIALS=/app/service-account.json
     volumes:
       - ./service-account.json:/app/service-account.json
+      - ./worker:/app/worker
+      - ./package.json:/app/package.json
+      - ./package-lock.json:/app/package-lock.json
 
 volumes:
   code-exec-share:

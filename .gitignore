@@ -11,6 +11,7 @@ package-lock.json
 # Environment variables
 # -----------------------
 .env
+service-account.json
 
 # -----------------------
 # Logs

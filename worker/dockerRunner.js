@@ -3,21 +3,22 @@ const fs = require("fs");
 const path = require("path");
 const { v4: uuidv4 } = require("uuid");
 
-const templates = {
-  python: fs.readFileSync(path.join(__dirname, "../resources/python_judge.py"), "utf8"),
-  node: fs.readFileSync(path.join(__dirname, "../resources/node_judge.js"), "utf8"),
-  cpp: fs.readFileSync(path.join(__dirname, "../resources/cpp_judge.cpp"), "utf8"),
+const getTemplate = (lang) => {
+  try {
+    const filename = lang === "cpp" || lang === "c++" ? "cpp_judge.cpp" : 
+                     lang === "python" ? "python_judge.py" : 
+                     "node_judge.js";
+    return fs.readFileSync(path.join(__dirname, `../resources/${filename}`), "utf8");
+  } catch (e) {
+    console.error(`Error reading template for ${lang}:`, e);
+    return "";
+  }
 };
 
 function getWrappedCode(code, language) {
-  if (language === "python" && templates.python) {
-    return templates.python.replace("{{USER_CODE}}", code);
-  } else if ((language === "node" || language === "javascript") && templates.node) {
-    return templates.node.replace("{{USER_CODE}}", code);
-  } else if ((language === "cpp" || language === "c++") && templates.cpp) {
-    return templates.cpp.replace("{{USER_CODE}}", code);
-  }
-  return code;
+  const template = getTemplate(language);
+  if (!template) return code;
+  return template.replace("{{USER_CODE}}", code);
 }
 
 async function runInDocker(code, language, stdin = "") {
@@ -52,7 +53,8 @@ async function runInDocker(code, language, stdin = "") {
     dockerArgs.push("js-runner", "node", `/shared/code-${id}/script.js`);
   } else if (language === "cpp" || language === "c++") {
     // T016: Handle C++ compilation
-    dockerArgs.push("cpp-runner", "sh", "-c", `g++ -std=c++17 -o /shared/code-${id}/prog /shared/code-${id}/script.cpp && /shared/code-${id}/prog`);
+    // Use /tmp for the compiled binary to avoid potential volume permission/sync issues
+    dockerArgs.push("cpp-runner", "sh", "-c", `g++ -std=c++17 -o /tmp/prog /shared/code-${id}/script.cpp && /tmp/prog`);
   } else {
     fs.rmSync(tempDir, { recursive: true, force: true });
     return { output: "Unsupported language", runtime: 0, memory: 0 };
