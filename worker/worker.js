@@ -1,9 +1,6 @@
-const { validateEnv } = require("../config");
-
-validateEnv();
-
 const { Worker } = require("bullmq");
 const IORedis = require("ioredis");
+const admin = require("firebase-admin");
 const { runInDocker } = require("./dockerRunner");
 const { reviewCode } = require("./aiReviewer");
 const {
@@ -13,8 +10,17 @@ const {
   workerActive,
 } = require("../metrics");
 
+// Initialize Firebase Admin
+if (!admin.apps.length) {
+  admin.initializeApp({
+    credential: admin.credential.applicationDefault(),
+  });
+}
+
+const db = admin.firestore();
+
 const connection = new IORedis({
-  host: "redis",
+  host: process.env.REDIS_HOST || "redis",
   port: process.env.REDIS_PORT || 6379,
   maxRetriesPerRequest: null,
 });
@@ -22,40 +28,94 @@ const connection = new IORedis({
 const worker = new Worker(
   "code-execution",
   async (job) => {
+    console.log(`👷 Worker received job: ${job.id} (Submission: ${job.data.submissionId})`);
     const startTime = Date.now();
     workerActive.inc({ queue_name: "code-execution" });
 
     try {
-      const { code, language, testCases, cacheKey, githubCommentUrl } = job.data;
+      const { submissionId, problemId, code, language, type } = job.data;
 
       let result = {
+        status: "processing",
         output: "",
-        testResults: null,
+        testResults: [],
         allPassed: true,
+        runtime: 0,
+        memory: 0,
         aiFeedback: ""
       };
 
-      if (testCases && Array.isArray(testCases) && testCases.length > 0) {
-        // Multi-test validation mode
-        result.testResults = [];
-        for (const tc of testCases) {
-          const actual = await runInDocker(code, language, tc.input || "");
-          const status = actual.trim() === (tc.expected || "").trim() ? "PASS" : "FAIL";
-          
-          if (status === "FAIL") result.allPassed = false;
-          
-          result.testResults.push({
-            name: tc.name || "Unnamed Test",
-            status,
-            actual,
-            expected: tc.expected
-          });
-        }
-        result.output = result.allPassed ? "All tests passed" : "Some tests failed";
+      // 1. Fetch the coding task (problem) test cases
+      const problemDoc = await db.collection("problems").doc(problemId).get();
+      if (!problemDoc.exists) {
+        throw new Error(`Problem ${problemId} not found`);
+      }
+
+      const problemData = problemDoc.data();
+      let activeTestCases = [];
+
+      if (type === "run") {
+        // Use public examples for debugging
+        activeTestCases = problemData.examples || [];
       } else {
-        // Legacy single-run mode
-        const output = await runInDocker(code, language);
-        result.output = output;
+        // Use protected hidden test cases for judging
+        // Note: These should be in a subcollection or protected field
+        const tcSnapshot = await problemDoc.ref.collection("testCases").get();
+        activeTestCases = tcSnapshot.docs.map(doc => doc.data());
+      }
+
+      if (activeTestCases.length === 0) {
+        throw new Error(`No test cases found for problem ${problemId} (${type})`);
+      }
+      // 2. Execute code against test cases
+      for (const tc of activeTestCases) {
+        const execution = await runInDocker(code, language, tc.input || "");
+        const actual = execution.output || "";
+        const expectedStr = (tc.output || tc.expected || "").toString().trim();
+
+        // Detect specific failure types
+        let status = "PASS";
+        const normalize = (str) => {
+          try { return JSON.stringify(JSON.parse(str.trim())); } catch (e) { return str.trim(); }
+        };
+
+        if (execution.output === "Time Limit Exceeded") status = "TLE";
+        else if (execution.output === "Memory Limit Exceeded") status = "MLE";
+        else if (normalize(actual) !== normalize(expectedStr)) status = "FAIL";
+        
+        if (status !== "PASS") result.allPassed = false;
+        
+        result.testResults.push({
+          input: tc.input,
+          actual: (status === "TLE" || status === "MLE") ? execution.output : actual.trim(),
+          expected: expectedStr,
+          status,
+          runtime: execution.runtime || 0,
+          memory: execution.memory || 0
+        });
+
+        // Track max usage
+        result.runtime = Math.max(result.runtime, execution.runtime || 0);
+        result.memory = Math.max(result.memory, execution.memory || 0);
+        
+        // Short-circuit on non-PASS in submit mode (optional, but typical for LeetCode)
+        if (type === "submit" && status !== "PASS") {
+          result.firstFailedStatus = status;
+          break;
+        }
+      }
+
+      if (result.allPassed) {
+        result.status = "accepted";
+        result.output = "All tests passed";
+      } else {
+        const firstFail = result.testResults.find(r => r.status !== "PASS");
+        if (firstFail.status === "TLE") result.status = "time_limit_exceeded";
+        else if (firstFail.status === "MLE") result.status = "memory_limit_exceeded";
+        else if (firstFail.status === "FAIL") result.status = "wrong_answer";
+        else result.status = "runtime_error";
+        
+        result.output = `Failed on test case: ${firstFail.status}`;
       }
       
       let aiFeedback;
@@ -72,27 +132,16 @@ const worker = new Worker(
 
       result.aiFeedback = aiFeedback;
 
-      // T004: Save to cache if we have a cacheKey
-      if (cacheKey) {
-        await connection.setex(cacheKey, 604800, JSON.stringify(result)); // 7-day TTL
-      }
-
-      // T013: Post to GitHub if triggered via Webhook
-      if (githubCommentUrl && process.env.PAT) {
-        const commentBody = `### AI Code Review\n\n**Output:**\n\`\`\`\n${output}\n\`\`\`\n\n**AI Feedback:**\n${aiFeedback}`;
-        try {
-          await fetch(githubCommentUrl, {
-            method: "POST",
-            headers: {
-              "Accept": "application/vnd.github.v3+json",
-              "Authorization": `token ${process.env.PAT}`,
-              "Content-Type": "application/json"
-            },
-            body: JSON.stringify({ body: commentBody })
-          });
-        } catch (e) {
-          console.error("Failed to post comment to GitHub", e);
-        }
+      // 4. Update Firestore with final results
+      if (submissionId) {
+        await db.collection("submissions").doc(submissionId).update({
+          status: result.status,
+          testResults: result.testResults,
+          runtime: `${result.runtime}ms`,
+          memory: `${(result.memory / 1024 / 1024).toFixed(1)}MB`,
+          aiFeedback: result.aiFeedback,
+          finishedAt: admin.firestore.FieldValue.serverTimestamp()
+        });
       }
 
       return result;
@@ -107,10 +156,16 @@ const worker = new Worker(
 
 worker.on("completed", (job, result) => {
   jobsCompleted.inc({ queue_name: "code-execution" });
-  console.log("Job done:", result);
+  console.log(`✅ Job ${job.id} completed successfully.`);
 });
 
 worker.on("failed", (job, err) => {
   jobsFailed.inc({ queue_name: "code-execution" });
-  console.error("Job failed:", err);
+  console.error(`❌ Job ${job ? job.id : 'unknown'} failed:`, err);
 });
+
+worker.on("error", (err) => {
+  console.error("🔥 Worker encountered a fatal error:", err);
+});
+
+console.log("🚀 Worker started for queue: code-execution");

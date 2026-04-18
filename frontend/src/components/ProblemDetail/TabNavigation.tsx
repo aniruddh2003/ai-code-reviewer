@@ -6,9 +6,10 @@ import {
   FlaskConical,
   History,
   Terminal,
+  Bug,
 } from "lucide-react";
 
-export type LeftTabType = "description" | "editorial" | "solutions" | "submissions" | "testcases";
+export type LeftTabType = "description" | "editorial" | "solutions" | "submissions" | "testcases" | "error";
 
 interface TabNavigationProps {
   leftTab: LeftTabType;
@@ -27,6 +28,7 @@ export const TabNavigation: React.FC<TabNavigationProps> = ({
     { id: "solutions", label: "Solutions", icon: FlaskConical, color: "text-blue-500" },
     { id: "submissions", label: "Submissions", icon: History, color: "text-blue-500" },
     { id: "testcases", label: "Testcases", icon: Terminal, color: "text-emerald-500" },
+    { id: "error", label: "Error", icon: Bug, color: "text-rose-500" },
   ] as const;
 
   return (

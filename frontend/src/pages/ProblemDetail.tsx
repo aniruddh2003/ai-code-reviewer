@@ -8,7 +8,7 @@ import {
   serverTimestamp,
   onSnapshot,
 } from "firebase/firestore";
-import { db, auth, isDemoMode } from "@/firebase/config";
+import { db, isDemoMode } from "@/firebase/config";
 import { Problem } from "@/types/problem";
 import { Submission } from "@/types/submission";
 import { useThemeStore } from "@/stores/themeStore";
@@ -16,8 +16,6 @@ import { useAuthStore } from "@/stores/authStore";
 import { cn } from "@/lib/utils";
 import {
   BookOpen,
-  FlaskConical,
-  History,
   ChevronDown
 } from "lucide-react";
 
@@ -31,6 +29,7 @@ import { AIReviewOverlay } from "@/components/ProblemDetail/AIReviewOverlay";
 import { HintModal } from "@/components/ProblemDetail/HintModal";
 import { SubmissionsPanel } from "@/components/ProblemDetail/SubmissionsPanel";
 import { SubmissionModal } from "@/components/ProblemDetail/SubmissionModal";
+import { ErrorPanel } from "@/components/ProblemDetail/ErrorPanel";
 
 export const ProblemDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -208,55 +207,65 @@ export const ProblemDetail: React.FC = () => {
     fetchProblem();
   }, [id]);
 
-  // Sync code with problem starter code on load or language change
-  useEffect(() => {
-    if (problem && !code) {
-      setCode(
-        problem.starterCode[language as keyof typeof problem.starterCode] || "",
-      );
-    }
-  }, [problem, language, code]);
-
-  // Handle submission
-  const handleSubmit = async () => {
+  // Shared Submission Handler (T011, T015)
+  const executeCode = async (type: "run" | "submit") => {
     if (!problem || !id) return;
 
-    // Check for user in store instead of auth.currentUser
     if (!user && !isDemoMode) {
-      alert("Please login to submit your solution!");
+      alert("Please login to execute code!");
       return;
     }
 
     setSubmitting(true);
-    setShowResults(true);
     setLeftTab("testcases");
+    if (type === "run") setHasRunResults(true);
+    else setHasSubmissionResult(true);
 
     if (isDemoMode) {
       // Simulation for Demo Mode
       setTimeout(() => {
-        setSubmission({
+        const isFailure = code.includes("// fail") || code.includes("// tle");
+        const status = code.includes("// tle") ? "time_limit_exceeded" : (isFailure ? "wrong_answer" : "accepted");
+
+        const mockResult: any = {
           id: "mock-sub-" + Date.now(),
           userId: "demo-user",
           problemId: id,
           code,
           language,
-          status: "accepted",
-          createdAt: new Date(),
-          feedback: {
-            score: 92,
-            summary:
-              "Excellent implementation! Your solution uses a Hash Map to achieve O(n) time complexity, which is the most optimal approach for this problem.",
-            criticalIssues: [],
-            performanceOptimizations: [
-              "Consider adding input validation for empty arrays as a best practice.",
-              "Documentation: Adding JSDoc comments would improve code maintainability.",
-            ],
+          status: status,
+          type,
+          runtime: status === "time_limit_exceeded" ? "15000ms" : "45ms",
+          memory: "12MB",
+          createdAt: { toDate: () => new Date() },
+          output: status === "time_limit_exceeded" ? "Time Limit Exceeded" : (isFailure ? "Wrong Answer" : "All tests passed"),
+          testResults: problem.examples?.map((ex, idx) => ({
+            input: ex.input,
+            actual: (idx === 0 && isFailure) ? (code.includes("// tle") ? "Time Limit Exceeded" : "[wrong, answer]") : ex.output,
+            expected: ex.output,
+            status: (idx === 0 && isFailure) ? (code.includes("// tle") ? "TLE" : "FAIL") : "PASS",
+            runtime: 12,
+            memory: 1.2
+          })),
+        };
+
+        if (type === "submit") {
+          mockResult.feedback = {
+            score: isFailure ? 40 : 92,
+            summary: isFailure ? "Your solution failed some test cases. Check the output for details." : "Excellent implementation! Your solution uses a Hash Map to achieve O(n) time complexity.",
             reviewedBy: "AI-Antigravity",
-          },
-        } as Submission);
+          };
+        }
+
+        setSubmission(mockResult);
         setSubmitting(false);
-        setHasSubmissionResult(true);
-      }, 3000);
+
+        // T024: Auto-switch to Error tab on failure
+        if (isFailure) {
+          setLeftTab("error");
+          setShowDescription(true);
+        }
+      }, 2000);
       return;
     }
 
@@ -267,27 +276,39 @@ export const ProblemDetail: React.FC = () => {
         code,
         language,
         status: "pending",
+        type,
         createdAt: serverTimestamp(),
       });
 
-      // Listen for updates to this submission (T013)
+      // Listen for updates to this submission
       const unsubscribe = onSnapshot(
         doc(db, "submissions", subRef.id),
         (snapshot) => {
-          const data = { id: snapshot.id, ...snapshot.data() } as Submission;
-          if (data.status !== "pending") {
-            setSubmission(data);
-            setSubmitting(false);
+          if (snapshot.exists()) {
+            const data = { id: snapshot.id, ...snapshot.data() } as Submission;
+            if (data.status !== "pending" && data.status !== "queued" && data.status !== "processing") {
+              setSubmission(data);
+              setSubmitting(false);
+
+              // T024: Auto-switch to Error tab on TLE, MLE, or Error
+              if (["wrong_answer", "time_limit_exceeded", "memory_limit_exceeded", "runtime_error", "error"].includes(data.status)) {
+                setLeftTab("error");
+                setShowDescription(true);
+              }
+
+              unsubscribe();
+            }
           }
         },
       );
-
-      return () => unsubscribe();
     } catch (error) {
-      console.error("Submission failed:", error);
+      console.error("Execution failed:", error);
       setSubmitting(false);
     }
   };
+
+  const handleRun = () => executeCode("run");
+  const handleSubmit = () => executeCode("submit");
 
   // Get AI Hint
   const handleGetHint = async () => {
@@ -393,10 +414,7 @@ Each hint should be 1-2 sentences. Return ONLY the JSON array, no markdown.`;
         language={language}
         onLanguageChange={handleLanguageChange}
         onBack={() => navigate("/")}
-        onRun={() => {
-          setLeftTab("testcases");
-          setHasRunResults(true);
-        }}
+        onRun={handleRun}
         onSubmit={handleSubmit}
         onGetHint={handleGetHint}
         submitting={submitting}
@@ -440,11 +458,20 @@ Each hint should be 1-2 sentences. Return ONLY the JSON array, no markdown.`;
 
               {leftTab === "testcases" && (
                 <TestcasePanel
+                  submission={submission}
+                  problem={problem}
                   hasSubmissionResult={hasSubmissionResult}
                   hasRunResults={hasRunResults}
                   theme={theme}
                   setHasRunResults={setHasRunResults}
                   setHasSubmissionResult={setHasSubmissionResult}
+                />
+              )}
+
+              {leftTab === "error" && (
+                <ErrorPanel
+                  submission={submission}
+                  theme={theme}
                 />
               )}
 
@@ -460,7 +487,10 @@ Each hint should be 1-2 sentences. Return ONLY the JSON array, no markdown.`;
               )}
 
               {leftTab === "solutions" && (
-                <div className="flex-1 flex flex-col items-center justify-center p-10 text-center opacity-40">
+                <div className={cn(
+                  "flex-1 flex flex-col items-center justify-center p-10 text-center opacity-40 h-full",
+                  theme === "dark" ? "text-white" : "text-slate-900"
+                )}>
                   <BookOpen className="h-8 w-8 mb-2" />
                   <h3 className="text-sm font-bold uppercase tracking-widest">{leftTab}</h3>
                   <p className="text-xs mt-2 max-w-[200px]">Coming soon in the next update.</p>
@@ -475,14 +505,14 @@ Each hint should be 1-2 sentences. Return ONLY the JSON array, no markdown.`;
             onClick={() => setShowDescription((prev) => !prev)}
             className={cn(
               "absolute -right-3 top-1/2 -translate-y-1/2 z-30 flex items-center justify-center h-10 w-6 rounded-full border transition-all shadow-md group",
-              theme === "dark" 
-                ? "bg-[#252526] border-white/10 text-white/40 hover:text-white hover:bg-[#2d2d2e]" 
+              theme === "dark"
+                ? "bg-[#252526] border-white/10 text-white/40 hover:text-white hover:bg-[#2d2d2e]"
                 : "bg-white border-slate-200 text-slate-400 hover:text-slate-700 hover:bg-slate-50"
             )}
           >
             <ChevronDown
               className={cn(
-                "h-3.5 w-3.5 transition-transform duration-500", 
+                "h-3.5 w-3.5 transition-transform duration-500",
                 showDescription ? "rotate-90" : "-rotate-90"
               )}
             />

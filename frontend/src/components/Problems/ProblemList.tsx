@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react"
-import { collection, onSnapshot, query, orderBy, addDoc, getDocs } from "firebase/firestore"
+import { collection, onSnapshot, query, orderBy, addDoc } from "firebase/firestore"
 import { db, isDemoMode } from "@/firebase/config"
 import { Problem } from "@/types/problem"
 import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"

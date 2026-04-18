@@ -46,6 +46,23 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - code-exec-share:/shared
+      - ./service-account.json:/app/service-account.json
+    environment:
+      - REDIS_HOST=redis
+      - GOOGLE_APPLICATION_CREDENTIALS=/app/service-account.json
+
+  bridge:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: node worker/bridge.js
+    depends_on:
+      - redis
+    environment:
+      - REDIS_HOST=redis
+      - GOOGLE_APPLICATION_CREDENTIALS=/app/service-account.json
+    volumes:
+      - ./service-account.json:/app/service-account.json
 
 volumes:
   code-exec-share:
