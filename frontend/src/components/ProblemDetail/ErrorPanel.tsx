@@ -22,7 +22,33 @@ export const ErrorPanel: React.FC<ErrorPanelProps> = ({
     );
   }
 
-  const isError = ["wrong_answer", "time_limit_exceeded", "memory_limit_exceeded", "runtime_error", "error"].includes(submission.status);
+  const getStatusTheme = (status: string) => {
+    switch (status) {
+      case "accepted":
+        return {
+          border: theme === "dark" ? "border-emerald-500/30 bg-emerald-500/10" : "border-emerald-200 bg-emerald-50",
+          iconContainer: "bg-emerald-500/20 text-emerald-500",
+          text: "text-emerald-500",
+          icon: <Info className="h-6 w-6" />
+        };
+      case "compilation_error":
+        return {
+          border: theme === "dark" ? "border-amber-500/30 bg-amber-500/10" : "border-amber-200 bg-amber-50",
+          iconContainer: "bg-amber-500/20 text-amber-500",
+          text: "text-amber-500",
+          icon: <Terminal className="h-6 w-6" />
+        };
+      default:
+        return {
+          border: theme === "dark" ? "border-rose-500/30 bg-rose-500/10" : "border-rose-200 bg-rose-50",
+          iconContainer: "bg-rose-500/20 text-rose-500",
+          text: "text-rose-500",
+          icon: <AlertCircle className="h-6 w-6" />
+        };
+    }
+  };
+
+  const statusTheme = getStatusTheme(submission.status);
   
   // Find the first failed test case if any
   const failedTestCase = submission.testResults?.find(tc => tc.status !== "PASS");
@@ -32,25 +58,23 @@ export const ErrorPanel: React.FC<ErrorPanelProps> = ({
       {/* Status Header */}
       <div className={cn(
         "rounded-xl border p-4 flex items-center gap-4 animate-in fade-in slide-in-from-top-2 duration-300",
-        isError 
-          ? theme === "dark" ? "border-rose-500/30 bg-rose-500/10" : "border-rose-200 bg-rose-50"
-          : theme === "dark" ? "border-emerald-500/30 bg-emerald-500/10" : "border-emerald-200 bg-emerald-50"
+        statusTheme.border
       )}>
         <div className={cn(
           "h-10 w-10 rounded-full flex items-center justify-center shrink-0",
-          isError ? "bg-rose-500/20 text-rose-500" : "bg-emerald-500/20 text-emerald-500"
+          statusTheme.iconContainer
         )}>
-          {isError ? <AlertCircle className="h-6 w-6" /> : <Info className="h-6 w-6" />}
+          {statusTheme.icon}
         </div>
         <div>
           <h3 className={cn(
             "text-sm font-bold uppercase tracking-wider",
-            isError ? "text-rose-500" : "text-emerald-500"
+            statusTheme.text
           )}>
             {submission.status.replace(/_/g, " ")}
           </h3>
           <p className={cn("text-xs mt-0.5", theme === "dark" ? "text-white/50" : "text-slate-500")}>
-            {submission.output || "Execution completed."}
+            {submission.status === "compilation_error" ? "Code failed to compile." : (submission.output || "Execution completed.")}
           </p>
         </div>
       </div>

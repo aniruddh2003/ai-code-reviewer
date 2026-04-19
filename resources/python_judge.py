@@ -1,5 +1,6 @@
 import sys
 import json
+import resource
 
 {{USER_CODE}}
 
@@ -26,6 +27,11 @@ if __name__ == "__main__":
         __res = __func(*__args)
         if __res is not None:
             print(json.dumps(__res) if not isinstance(__res, str) else __res)
+        
+        # Internal Telemetry for Memory Polish
+        __mem = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+        # MaxRSS is usually in KB on Linux
+        print(f"INTERNAL_TELEMETRY:{{\"memory_rss\": {__mem * 1024}}}", file=sys.stderr)
     else:
         print("Error: No entry point found. Please define 'Solution' class or 'solution' function.", file=sys.stderr)
         sys.exit(1)

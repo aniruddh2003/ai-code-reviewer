@@ -102,6 +102,24 @@ const worker = new Worker(
         console.log(`📡 [${language}] Running case: ${tc.name || 'Sample'} with input:`, rawInput.replace(/\n/g, " | "));
         
         const execution = await runInDocker(code, language, rawInput);
+        
+        // Handle Compilation Errors (T019)
+        if (execution.isCompilationError) {
+          result.status = "compilation_error";
+          result.output = execution.output;
+          result.allPassed = false;
+          result.testResults.push({
+            name: "Compilation",
+            input: "N/A",
+            actual: execution.output,
+            expected: "No compilation errors",
+            status: "ERROR",
+            runtime: 0,
+            memory: 0
+          });
+          break;
+        }
+
         const actual = execution.output || "";
         const expectedStr = (tc.output || tc.expected || "").toString().trim();
 

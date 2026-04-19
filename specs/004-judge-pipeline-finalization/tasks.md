@@ -67,12 +67,24 @@ Tasks are grouped by user story to enable independent implementation and testing
 
 ---
 
+---
+
 ## Phase 6: Polish & Cross-Cutting Concerns
 
-- [ ] T019 [P] Add error logging for failed Docker executions or Firestore updates
-- [ ] T020 Run full end-to-end traversal of "Run" and "Submit" flows for all languages
-- [ ] T021 [P] Ensure all artifacts (screenshots/videos) are updated in `assets/`
-- [ ] T022 Update `walkthrough.md` with final judge pipeline demo
+- [ ] T019 [P] Implement explicit **Compilation Error** detection in `worker/dockerRunner.js` (detect `g++` failure vs runtime)
+- [ ] T020 [P] Refine **Memory Reporting** logic to replace placeholders with more accurate metrics from Docker
+- [ ] T021 Run full end-to-end regression suite (PASS/WA/TLE) for all 3 supported languages
+- [ ] T022 Update `walkthrough.md` with finalized stability benchmarks and judge pipeline demo
+
+---
+
+## Phase 7: Language-Specific Hardening (New FRs)
+
+**Goal**: Codify the breakthroughs in input normalization and C++ environment stability.
+
+- [x] T023 [US3] Implement `transformInput` normalization logic in `worker/worker.js` (ref FR-008)
+- [x] T024 [US3] Update C++ judge template (`resources/cpp_judge.cpp`) with STL standard headers (ref FR-009)
+- [x] T025 [P] Configure Docker Hub-compatible bind-mounts for hot-reload in `docker-compose.yaml`
 
 ---
 
@@ -80,5 +92,5 @@ Tasks are grouped by user story to enable independent implementation and testing
 
 - **Phase 1 & 2**: MUST be completed first to establish the bridge.
 - **Phase 3 (US1)**: Can be implemented and verified independently as MVP.
-- **Phase 4 (US2)**: Depends on Phase 3 logic for base execution but adds the judging layer.
-- **Phase 5 (US3)**: Can run in parallel with US1/US2 implementation tasks for specific file updates in `dockerRunner.js`.
+- **Phase 4 (US2)**: Depends on Phase 3 logic for base execution.
+- **Phase 5 (US3)**: Hardening tasks now depend on successful base multi-language container setup.

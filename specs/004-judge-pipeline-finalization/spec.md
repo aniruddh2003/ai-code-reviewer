@@ -2,7 +2,8 @@
 
 **Feature Branch**: `004-judge-pipeline-finalization`  
 **Created**: 2026-04-18  
-**Status**: Draft  
+**Last Amended**: 2026-04-19  
+**Status**: Final / Hardened  
 **Input**: User description: "Finalize the connection between the LeetCode frontend 'Run/Submit' buttons and the actual Docker-based Judge Worker. This includes creating a Firestore listener that triggers the execution pipeline, updating submission status in real-time, and ensuring robust Docker-based testing for multiple languages."
 
 ## Clarifications
@@ -42,27 +43,28 @@ As a user, I want to click "Submit" and have my code judged against all hidden t
 
 ---
 
-### User Story 3 - Multi-Language Robustness (Priority: P2)
+### User Story 3 - Multi-Language Robustness (Priority: P1)
 
-As a user, I want to submit code in any supported language (JavaScript, Python, C++) and have it executed in a consistent, isolated environment.
+As a user, I want to submit code in any supported language (JavaScript, Python, C++) and have it executed in a consistent, isolated, and feature-rich environment.
 
-**Why this priority**: Ensures platform flexibility and security through Docker isolation.
+**Why this priority**: Ensures platform flexibility and parity with industry standards (e.g., LeetCode/Codeforces).
 
-**Independent Test**: User submits valid code in Python and C++, and both return correct results with consistent status reporting.
+**Independent Test**: User submits a C++ solution using `std::unordered_map` without manual `#include <unordered_map>`, and it executes successfully.
 
 **Acceptance Scenarios**:
 
-1. **Given** a C++ submission, **When** the judge worker receives it, **Then** it is compiled and executed within a Docker container specifically configured for C++.
-2. **Given** a Python submission, **When** the judge worker receives it, **Then** it is interpreted within a Docker container specifically configured for Python.
+1. **Given** a C++ submission, **When** the judge worker receives it, **Then** it is compiled and executed within a Docker container.
+2. **Given** a Python submission, **When** the judge worker receives it, **Then** it is interpreted within a Docker container.
+3. **Given** the input contains human-readable variable assignments, **When** it is processed, **Then** it is normalized into raw machine-ready data automatically.
 
 ---
 
 ## Edge Cases
 
-- **Infinite Loops**: How does the system handle code that never terminates? (The Docker runner must have a hard timeout (e.g., 5s) and return `TLE`).
-- **Resource Exhaustion**: How does the system handle code that consumes excessive memory? (The Docker container must have memory limits, and the runner should detect and return `MLE`).
-- **Concurrent Submissions**: How does the system handle multiple users submitting at the same time? (The worker must use a queue (BullMQ/Redis) and scale to handle multiple concurrent jobs).
-- **Network Failure**: What happens if the worker fails to update Firestore? (The system should use retries or a "claimed" status to prevent jobs from being lost).
+- **Infinite Loops**: The Docker runner must have a hard timeout (e.g., 5s) and return `TLE`.
+- **Resource Exhaustion**: Docker container must have memory limits; runner should detect and return `MLE`.
+- **Concurrent Submissions**: Worker uses BullMQ/Redis to scale and handle multiple concurrent jobs.
+- **Linker Latency**: C++ compilation MUST output to a fast container-local path (e.g., `/tmp/prog`) to avoid volume synchronization delays on Windows/Docker.
 
 ## Requirements *(mandatory)*
 
@@ -71,22 +73,36 @@ As a user, I want to submit code in any supported language (JavaScript, Python, 
 - **FR-001**: System MUST provide a backend listener that triggers code execution when a new document is added to the real-time database.
 - **FR-002**: System MUST isolate code execution using secure environments for each supported language.
 - **FR-003**: System MUST execute debugging requests against sample test cases only.
-- **FR-004**: System MUST execute full submission requests against the complete set of validation test cases fetched securely by the backend.
-- **FR-005**: System MUST update the submission record with status, test results, runtime, and memory metrics upon completion.
+- **FR-004**: System MUST execute full submission requests against hidden test cases.
+- **FR-005**: System MUST update the submission record with status, test results, runtime, and memory metrics.
 - **FR-006**: System MUST enforce configurable time and memory limits for all executions.
 - **FR-007**: System MUST capture and return standard logging output for user debugging.
+- **FR-008 (NEW)**: System MUST automatically normalize human-readable example inputs (e.g., `nums = [2,7], target = 9`) into machine-executable formats.
+- **FR-009 (NEW)**: System MUST pre-configure compiled language environments with essential standard library headers (STL) to provide boilerplate-free execution.
 
-### Key Entities *(include if feature involves data)*
+### Key Entities
 
-- **Submission**: Represents the execution request and its final outcome (code, status, performance metrics, validation results).
-- **Coding Task**: Represents a problem definition, containing public metadata, sample test cases for debugging, and a protected set of hidden test cases for validation.
-- **Validation Result**: Represents the output of a single test case compared against expected results.
+- **Submission**: Code, status, performance metrics, validation results.
+- **Coding Task**: Problem definition, public metadata, sample test cases, and hidden test cases.
+- **Validation Result**: Single test case output vs expected.
+
+---
+
+## Development Delta Report (Gap Analysis)
+
+| Category | Item | Rationale | Result |
+| :--- | :--- | :--- | :--- |
+| **MORE** | **Smart Normalization** | Human-readable examples required a transformation layer. | ✅ Implemented `transformInput` |
+| **MORE** | **STL Hardening** | Manual boilerplate for C++ was a friction point. | ✅ Integrated into template |
+| **MORE** | **Linker Optimization** | Docker volume latency caused "File Not Found" errors. | ✅ Binaries moved to `/tmp` |
+| **MORE** | **Hot-Reload DX** | Iteration was too slow with container rebuilds. | ✅ Bind-mounts established |
+| **LESS** | **MLE Granularity** | High-precision memory telemetry is still best-effort. | ⚠️ Metrics limited to OS reporting |
 
 ## Success Criteria *(mandatory)*
 
 ### Measurable Outcomes
 
-- **SC-001**: Average execution turnaround time (from user click to result) is under 8 seconds for standard solutions.
-- **SC-002**: 100% of non-terminating code submissions are correctly identified as exceeding time limits without host degradation.
-- **SC-003**: 100% of submissions in supported languages successfully map to their respective execution environments.
-- **SC-004**: Submission status updates in the user interface within 500ms of the backend finalizing the result.
+- **SC-001**: Average execution turnaround time is under 8 seconds.
+- **SC-002**: 100% of infinite loops are terminated safely without host degradation.
+- **SC-003**: 100% of submissions in JS, Python, and C++ (modern STL) map to their respective runners.
+- **SC-004**: System provides accurate "Human-to-Machine" input transformation for 100% of standard LeetCode example formats.

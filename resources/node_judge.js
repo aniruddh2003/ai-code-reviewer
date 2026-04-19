@@ -17,6 +17,8 @@ try {
         if (__res !== undefined) {
             console.log(typeof __res === 'string' ? __res : JSON.stringify(__res));
         }
+        // Internal Telemetry for Memory Polish
+        process.stderr.write(`INTERNAL_TELEMETRY:{"memory_rss":${process.memoryUsage().rss}}\n`);
     } else {
         process.stderr.write("Error: No function found. Please define 'computeResult' or 'solution'.\n");
         process.exit(1);

@@ -7,6 +7,7 @@ export type SubmissionStatus =
   | "time_limit_exceeded" 
   | "memory_limit_exceeded" 
   | "runtime_error" 
+  | "compilation_error"
   | "error";
 
 export interface TestCaseResult {

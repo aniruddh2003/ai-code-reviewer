@@ -1,4 +1,6 @@
 #include <iostream>
+#include <sys/resource.h>
+#include <bits/stdc++.h>
 #include <vector>
 #include <string>
 #include <tuple>
@@ -58,5 +60,12 @@ void execute(R (*func)(Args...)) {
 
 int main() {
     execute(solution);
+    
+    // Internal Telemetry for Memory Polish
+    struct rusage usage;
+    if (getrusage(RUSAGE_SELF, &usage) == 0) {
+        cerr << "INTERNAL_TELEMETRY:{\"memory_rss\":" << usage.ru_maxrss * 1024 << "}" << endl;
+    }
+    
     return 0;
 }

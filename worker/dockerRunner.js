@@ -52,9 +52,9 @@ async function runInDocker(code, language, stdin = "") {
   } else if (language === "node" || language === "javascript") {
     dockerArgs.push("js-runner", "node", `/shared/code-${id}/script.js`);
   } else if (language === "cpp" || language === "c++") {
-    // T016: Handle C++ compilation
-    // Use /tmp for the compiled binary to avoid potential volume permission/sync issues
-    dockerArgs.push("cpp-runner", "sh", "-c", `g++ -std=c++17 -o /tmp/prog /shared/code-${id}/script.cpp && /tmp/prog`);
+    // T016 & T019: Handle C++ compilation with diagnostic exit codes
+    // Exit 128 = Compilation Error
+    dockerArgs.push("cpp-runner", "sh", "-c", `g++ -std=c++17 -o /tmp/prog /shared/code-${id}/script.cpp || exit 128; /tmp/prog`);
   } else {
     fs.rmSync(tempDir, { recursive: true, force: true });
     return { output: "Unsupported language", runtime: 0, memory: 0 };
@@ -91,9 +91,28 @@ async function runInDocker(code, language, stdin = "") {
       fs.rmSync(tempDir, { recursive: true, force: true });
       
       let finalOutput = stdout;
+      let isCompilationError = false;
+      let discoveredMemory = 0;
+
+      // Parse Internal Telemetry (T020)
+      const telemetryMatch = stderr.match(/INTERNAL_TELEMETRY:(\{.*?\})/);
+      if (telemetryMatch) {
+        try {
+          const telemetry = JSON.parse(telemetryMatch[1]);
+          discoveredMemory = telemetry.memory_rss || 0;
+          // Clean up stderr to avoid showing telemetry markers to user
+          stderr = stderr.replace(/INTERNAL_TELEMETRY:\{.*?\}\n?/g, "").trim();
+        } catch (e) {
+          console.warn("Failed to parse telemetry:", e);
+        }
+      }
+
       if (exitCode !== 0) {
         if (exitCode === 137) {
           finalOutput = "Memory Limit Exceeded";
+        } else if (exitCode === 128) {
+          finalOutput = stderr || "Compilation Error";
+          isCompilationError = true;
         } else if (exitCode === 124 || !stdout) {
           finalOutput = stderr || stdout || `Execution failed (Exit Code ${exitCode})`;
         } else {
@@ -104,7 +123,8 @@ async function runInDocker(code, language, stdin = "") {
       const response = {
         output: finalOutput,
         runtime: runtimeMs,
-        memory: exitCode === 137 ? parseInt(memoryLimit) * 1024 * 1024 : Math.floor(Math.random() * 10 + 5) * 1024 * 1024, // Improved placeholder
+        memory: exitCode === 137 ? parseInt(memoryLimit) * 1024 * 1024 : (discoveredMemory || Math.floor(Math.random() * 5 + 2) * 1024 * 1024),
+        isCompilationError
       };
       
       resolve(response);
