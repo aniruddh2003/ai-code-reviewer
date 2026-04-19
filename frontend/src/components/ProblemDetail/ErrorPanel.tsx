@@ -1,5 +1,5 @@
 import React from "react";
-import { cn } from "@/lib/utils";
+import { cn, formatMemory, formatRuntime } from "@/lib/utils";
 import { Submission } from "@/types/submission";
 import { AlertCircle, Terminal, Info, Clock, Cpu } from "lucide-react";
 
@@ -136,12 +136,12 @@ export const ErrorPanel: React.FC<ErrorPanelProps> = ({
            <div className="flex items-center gap-2">
             <Clock className="h-3 w-3 text-muted-foreground" />
             <span className="text-[10px] font-bold opacity-40 uppercase tracking-wider">Time</span>
-            <span className="text-xs font-mono font-bold">{submission.runtime}</span>
+            <span className="text-xs font-mono font-bold">{formatRuntime(submission.runtime)}</span>
           </div>
           <div className="flex items-center gap-2">
             <Cpu className="h-3 w-3 text-muted-foreground" />
             <span className="text-[10px] font-bold opacity-40 uppercase tracking-wider">Memory</span>
-            <span className="text-xs font-mono font-bold">{submission.memory}</span>
+            <span className="text-xs font-mono font-bold">{formatMemory(submission.memory)}</span>
           </div>
         </div>
       )}

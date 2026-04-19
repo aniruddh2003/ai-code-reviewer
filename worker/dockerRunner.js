@@ -61,7 +61,7 @@ async function runInDocker(code, language, stdin = "") {
   }
 
   return new Promise((resolve) => {
-    const child = spawn("docker", dockerArgs, { timeout: 15000 });
+    const child = spawn("docker", dockerArgs, { timeout: 5000 });
 
     let stdout = "";
     let stderr = "";
@@ -134,9 +134,9 @@ async function runInDocker(code, language, stdin = "") {
     setTimeout(() => {
       if (child.exitCode === null) {
         child.kill("SIGKILL");
-        resolve({ output: "Time Limit Exceeded", runtime: 15000, memory: 0 });
+        resolve({ output: "Time Limit Exceeded", runtime: 5000, memory: 0 });
       }
-    }, 16000);
+    }, 6000);
   });
 }
 

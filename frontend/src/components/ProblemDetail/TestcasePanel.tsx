@@ -1,5 +1,5 @@
 import React from "react";
-import { cn } from "@/lib/utils";
+import { cn, formatMemory, formatRuntime } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
   CheckCircle2,
@@ -63,7 +63,7 @@ export const TestcasePanel: React.FC<TestcasePanelProps> = ({
               {results.filter(r => r.status === "PASS").length}/{results.length || "?"}
             </p>
             <p className={cn("text-[10px] mt-0.5", theme === "dark" ? "text-white/30" : "text-slate-400")}>
-              {submission.runtime || "0ms"} · {submission.memory || "0MB"}
+              {formatRuntime(submission.runtime)} · {formatMemory(submission.memory)}
             </p>
           </div>
         </div>
@@ -147,8 +147,8 @@ export const TestcasePanel: React.FC<TestcasePanelProps> = ({
                   "flex gap-4 pt-2 border-t text-[10px]",
                   theme === "dark" ? "border-white/5 text-white/20" : "border-slate-200 text-slate-400"
                 )}>
-                  {tc.runtime !== undefined && <span className="flex items-center gap-1"><Clock className="h-2.5 w-2.5" /> {tc.runtime}ms</span>}
-                  {tc.memory !== undefined && <span className="flex items-center gap-1"><Zap className="h-2.5 w-2.5" /> {tc.memory}MB</span>}
+                  {tc.runtime !== undefined && <span className="flex items-center gap-1"><Clock className="h-2.5 w-2.5" /> {formatRuntime(tc.runtime)}</span>}
+                  {tc.memory !== undefined && <span className="flex items-center gap-1"><Zap className="h-2.5 w-2.5" /> {formatMemory(tc.memory)}</span>}
                 </div>
               )}
             </div>

@@ -1,13 +1,13 @@
 <!--
 Sync Impact Report:
-- Version change: 1.1.0 -> 1.2.0
+- Version change: 1.2.0 -> 1.3.0
 - Modified principles:
-    - Added "Multilingual Parity" (Non-negotiable).
-    - Added "Smart Input Normalization" (Functional).
-    - Added "Developer Experience (DX) Infrastructure" (Operational).
-- Added sections: STL Pre-inclusion Standard, Docker Hot-Reload (Bind Mounts).
+    - Added "Diagnostic Integrity (Code 128)" (Reliability).
+    - Added "High-Precision Telemetry (RSS)" (Observability).
+    - Added "Telemetry Marker Parity" (Standardization).
+- Added sections: Strict Resource Constraints (5s TLE).
 - Removed sections: None
-- Templates requiring updates: N/A (Consistently use dynamic constitution checks).
+- Templates requiring updates: N/A
 -->
 
 # Project Constitution
@@ -15,7 +15,7 @@ Sync Impact Report:
 **Project Name**: AI Code Reviewer
 **Ratification Date**: 2026-04-14
 **Last Amended Date**: 2026-04-19
-**Version**: 1.2.0
+**Version**: 1.3.0
 
 ## 1. Core Principles
 
@@ -27,11 +27,19 @@ All heavy processing (compilation, Docker execution, AI inference) MUST occur as
 All user-submitted code MUST execute within strictly constrained and isolated Docker containers.
 *Rationale*: Protects the host system from executing potentially malicious user-provided scripts, preventing RCE vulnerabilities.
 
-**Multilingual Parity (NEW)**
-The system MUST provide consistent execution quality and judge behavior across all supported languages (Javascript, Python, C++). 
-*Rationale*: Ensures a uniform user experience regardless of the selected technology stack.
+**Diagnostic Integrity (NEW)**
+The execution pipeline MUST use distinct, sentinel exit codes to categorize failures. Specifically, Code 128 MUST be reserved for compilation failures, and Code 137 for memory limit violations.
+*Rationale*: Prevents ambiguous "Runtime Error" reports and provides users with precise debug context (Build vs. Logic).
 
-**Smart Input Normalization (NEW)**
+**High-Precision Telemetry (NEW)**
+The system MUST report actual system metrics (Peak RSS and Precision Runtime) captured via internal language-specific calls (e.g., `getrusage`) instead of host-side estimations.
+*Rationale*: Ensures data accuracy for benchmarking and fair judging.
+
+**Telemetry Marker Parity (NEW)**
+Every language template MUST emit metrics using the standardized `INTERNAL_TELEMETRY:{"memory_rss":...}` marker in stderr.
+*Rationale*: Standardizes the parsing logic across the Worker stack and simplifies multi-language scaling.
+
+**Smart Input Normalization**
 The worker MUST automatically normalize human-readable user inputs (e.g., "nums = [1,2], target = 3") into the machine-readable formats required by language-specific judges.
 *Rationale*: Bridges the gap between user-friendly problem descriptions and rigorous static execution.
 
@@ -53,7 +61,7 @@ The system MUST capture and persist every submission attempt in Firestore. Each 
 - **Frontend**: React + Vite (Typescript)
 - **Styling**: Vanilla CSS + Glassmorphic Design System
 - **External Integration**: OpenAI API
-- **Local Deployment**: Docker Compose with **Bind Mounts** for hot-reloading code.
+- **Local Deployment**: Docker Compose with **Bind Mounts**.
 
 ## 3. Tooling and Environment Standards
 
@@ -67,13 +75,13 @@ The development environment MUST use bind mounts for `api`, `worker`, and `bridg
 
 ## 4. Security Protocol
 
+**Strict Resource Constraints (AMENDED)**
+Every user-run Docker container MUST specify strict memory limit constraints and a MANDATORY execution timeout of **5.0 seconds**.
+*Rationale*: Prevents DoS attacks and rogue processes while maintaining a fast execution loop.
+
 **Host Decoupling (MUST)**
 The worker node MUST NOT execute user code directly on the host OS. All dynamic execution MUST be sandboxed within the Docker CLI isolation layer.
 *Rationale*: Absolute necessity for a safe multi-tenant code execution engine.
-
-**Resource Limitations (MUST)**
-Every user-run Docker container MUST specify strict memory limit constraints, CPU caps, and maximum execution timeouts.
-*Rationale*: Prevents DoS attacks and resource exhaustion.
 
 **Identity-Aware Authorization (MUST)**
 Firestore Security Rules MUST be configured to enforce that users can only read/write data associated with their unique Firebase UID.

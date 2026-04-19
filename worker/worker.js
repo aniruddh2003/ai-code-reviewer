@@ -188,8 +188,8 @@ const worker = new Worker(
         await db.collection("submissions").doc(submissionId).update({
           status: result.status,
           testResults: result.testResults,
-          runtime: `${result.runtime}ms`,
-          memory: `${(result.memory / 1024 / 1024).toFixed(1)}MB`,
+          runtime: result.runtime,
+          memory: result.memory,
           aiFeedback: result.aiFeedback,
           finishedAt: admin.firestore.FieldValue.serverTimestamp()
         });
