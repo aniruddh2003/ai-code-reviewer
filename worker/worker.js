@@ -1,7 +1,7 @@
 const { Worker } = require("bullmq");
 const IORedis = require("ioredis");
 const admin = require("firebase-admin");
-const { runInDocker } = require("./dockerRunner");
+const { prepareCode, compileCode, executeCode, cleanupCode } = require("./dockerRunner");
 const { reviewCode } = require("./aiReviewer");
 const {
   jobsCompleted,
@@ -96,31 +96,32 @@ const worker = new Worker(
       if (activeTestCases.length === 0) {
         throw new Error(`No test cases found for problem ${problemId} (${type})`);
       }
-      // 2. Execute code against test cases
-      for (const tc of activeTestCases) {
-        const rawInput = transformInput(tc.input || tc.inputStr || "");
-        console.log(`📡 [${language}] Running case: ${tc.name || 'Sample'} with input:`, rawInput.replace(/\n/g, " | "));
-        
-        const execution = await runInDocker(code, language, rawInput);
-        
-        // Handle Compilation Errors (T019)
-        if (execution.isCompilationError) {
+
+      const execId = prepareCode(code, language);
+
+      const compileRes = await compileCode(execId, language);
+        if (!compileRes.success) {
           result.status = "compilation_error";
-          result.output = execution.output;
+          result.output = compileRes.output;
           result.allPassed = false;
           result.testResults.push({
             name: "Compilation",
             input: "N/A",
-            actual: execution.output,
+            actual: compileRes.output,
             expected: "No compilation errors",
             status: "ERROR",
             runtime: 0,
             memory: 0
           });
-          break;
-        }
-
-        const actual = execution.output || "";
+        } else {
+          // 2. Execute code against test cases
+          for (const tc of activeTestCases) {
+            const rawInput = transformInput(tc.input || tc.inputStr || "");
+            console.log(`📡 [${language}] Running case: ${tc.name || 'Sample'} with input:`, rawInput.replace(/\n/g, " | "));
+            
+            const execution = await executeCode(execId, language, rawInput);
+            
+            const actual = execution.output || "";
         const expectedStr = (tc.output || tc.expected || "").toString().trim();
 
         // Detect specific failure types
@@ -149,10 +150,11 @@ const worker = new Worker(
         result.runtime = Math.max(result.runtime, execution.runtime || 0);
         result.memory = Math.max(result.memory, execution.memory || 0);
         
-        // Short-circuit on non-PASS in submit mode (optional, but typical for LeetCode)
-        if (type === "submit" && status !== "PASS") {
-          result.firstFailedStatus = status;
-          break;
+          // Short-circuit on non-PASS in submit mode (optional, but typical for LeetCode)
+          if (type === "submit" && status !== "PASS") {
+            result.firstFailedStatus = status;
+            break;
+          }
         }
       }
 
@@ -179,6 +181,8 @@ const worker = new Worker(
         } else {
           throw err;
         }
+      } finally {
+        cleanupCode(execId);
       }
 
       result.aiFeedback = aiFeedback;
