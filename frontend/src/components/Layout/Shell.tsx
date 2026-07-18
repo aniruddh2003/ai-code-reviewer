@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from "react"
+import React, { useEffect } from "react"
 import { useThemeStore } from "@/stores/themeStore"
-import { Sun, Moon, Rocket, User, LogIn } from "lucide-react"
+import { Sun, Moon, Rocket, LogIn } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { auth, isDemoMode } from "@/firebase/config"

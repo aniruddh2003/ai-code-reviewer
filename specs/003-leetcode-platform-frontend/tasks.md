@@ -46,10 +46,10 @@
 
 ### Implementation for User Story 1
 
-- [ ] T010 [P] [US1] Create Monaco Editor component with theme awareness in `frontend/src/components/Editor/CodeEditor.tsx`
-- [ ] T011 [US1] Implement Theme Toggle UI in `frontend/src/components/Layout/ThemeToggle.tsx`
-- [ ] T012 [US1] Create Problem View layout with description and editor panes in `frontend/src/pages/ProblemPage.tsx`
-- [ ] T013 [US1] Implement local storage persistence for theme in `themeStore.ts`
+- [x] T010 [P] [US1] Create Monaco Editor component with theme awareness in `frontend/src/components/Editor/CodeEditor.tsx`
+- [x] T011 [US1] Implement Theme Toggle UI in `frontend/src/components/Layout/ThemeToggle.tsx`
+- [x] T012 [US1] Create Problem View layout with description and editor panes in `frontend/src/pages/ProblemPage.tsx`
+- [x] T013 [US1] Implement local storage persistence for theme in `themeStore.ts`
 
 **Checkpoint**: User Story 1 (Theming & Editor) fully functional.
 
@@ -63,11 +63,11 @@
 
 ### Implementation for User Story 2
 
-- [ ] T014 [US2] Skeleton Judge Worker in `backend/src/worker.ts`
-- [ ] T015 [US2] Implement Firestore listener in Judge Worker to pick up `PENDING` submissions
-- [ ] T016 [US2] Integrate Docker runner into Judge Worker for secure execution
-- [ ] T017 [US2] Implement `useSubmissions` hook for real-time Firestore sync in `frontend/src/hooks/useSubmissions.ts`
-- [ ] T018 [US2] Implement Submit button logic and status tracking in `ProblemPage.tsx`
+- [x] T014 [US2] Skeleton Judge Worker in `backend/src/worker.ts`
+- [x] T015 [US2] Implement Firestore listener in Judge Worker to pick up `PENDING` submissions
+- [x] T016 [US2] Integrate Docker runner into Judge Worker for secure execution
+- [x] T017 [US2] Implement `useSubmissions` hook for real-time Firestore sync in `frontend/src/hooks/useSubmissions.ts`
+- [x] T018 [US2] Implement Submit button logic and status tracking in `ProblemPage.tsx`
 
 **Checkpoint**: End-to-end authenticated submission flow functional.
 

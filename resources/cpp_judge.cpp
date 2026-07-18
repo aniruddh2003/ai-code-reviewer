@@ -1,8 +1,18 @@
 #include <iostream>
+#include <sys/resource.h>
+#include <bits/stdc++.h>
 #include <vector>
 #include <string>
 #include <tuple>
 #include <type_traits>
+#include <utility>
+#include <map>
+#include <unordered_map>
+#include <unordered_set>
+#include <algorithm>
+#include <cmath>
+#include <queue>
+#include <stack>
 #include <nlohmann/json.hpp>
 
 using namespace std;
@@ -16,22 +26,20 @@ auto parse_to_tuple(const vector<json>& args, index_sequence<Is...>) {
     return make_tuple(args[Is].get<decay_t<tuple_element_t<Is, T>>>()...);
 }
 
-template <typename F>
-void run_judge(F func) {
-    vector<json> v_args;
-    string line;
-    while (getline(cin, line) && !line.empty()) {
-        try { v_args.push_back(json::parse(line)); } catch (...) { v_args.push_back(line); }
-    }
-}
-
 // Support for free functions
 template <typename R, typename... Args>
 void execute(R (*func)(Args...)) {
     vector<json> v_args;
     string line;
-    while (getline(cin, line) && !line.empty()) {
-        try { v_args.push_back(json::parse(line)); } catch (...) { v_args.push_back(line); }
+    // Read all input lines until EOF or empty line
+    while (getline(cin, line)) {
+        if (line.empty()) continue;
+        try { 
+            v_args.push_back(json::parse(line)); 
+        } catch (...) { 
+            // Fallback for raw strings if they aren't JSON-formatted
+            v_args.push_back(line); 
+        }
     }
     
     if (v_args.size() < sizeof...(Args)) {
@@ -51,8 +59,13 @@ void execute(R (*func)(Args...)) {
 }
 
 int main() {
-    // We prioritize 'solution' as a free function for simplicity in this prototype
-    // This can be expanded to Solution class methods using similar template logic
     execute(solution);
+    
+    // Internal Telemetry for Memory Polish
+    struct rusage usage;
+    if (getrusage(RUSAGE_SELF, &usage) == 0) {
+        cerr << "INTERNAL_TELEMETRY:{\"memory_rss\":" << usage.ru_maxrss * 1024 << "}" << endl;
+    }
+    
     return 0;
 }

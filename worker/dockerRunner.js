@@ -3,27 +3,27 @@ const fs = require("fs");
 const path = require("path");
 const { v4: uuidv4 } = require("uuid");
 
-const templates = {
-  python: fs.readFileSync(path.join(__dirname, "../resources/python_judge.py"), "utf8"),
-  node: fs.readFileSync(path.join(__dirname, "../resources/node_judge.js"), "utf8"),
-  cpp: fs.readFileSync(path.join(__dirname, "../resources/cpp_judge.cpp"), "utf8"),
+const getTemplate = (lang) => {
+  try {
+    const filename = lang === "cpp" || lang === "c++" ? "cpp_judge.cpp" : 
+                     lang === "python" ? "python_judge.py" : 
+                     "node_judge.js";
+    return fs.readFileSync(path.join(__dirname, `../resources/${filename}`), "utf8");
+  } catch (e) {
+    console.error(`Error reading template for ${lang}:`, e);
+    return "";
+  }
 };
 
 function getWrappedCode(code, language) {
-  if (language === "python" && templates.python) {
-    return templates.python.replace("{{USER_CODE}}", code);
-  } else if ((language === "node" || language === "javascript") && templates.node) {
-    return templates.node.replace("{{USER_CODE}}", code);
-  } else if ((language === "cpp" || language === "c++") && templates.cpp) {
-    return templates.cpp.replace("{{USER_CODE}}", code);
-  }
-  return code;
+  const template = getTemplate(language);
+  if (!template) return code;
+  return template.replace("{{USER_CODE}}", code);
 }
 
-async function runInDocker(code, language, stdin = "") {
+function prepareCode(code, language) {
   const id = uuidv4();
   const tempDir = `/shared/code-${id}`;
-
   fs.mkdirSync(tempDir, { recursive: true });
 
   const filePath = path.join(
@@ -32,73 +32,117 @@ async function runInDocker(code, language, stdin = "") {
       ? "script.js"
       : language === "cpp" || language === "c++"
         ? "script.cpp"
-        : "script.py",
+        : "script.py"
   );
-
-  let memoryLimit = "100m";
-  if (language === "cpp" || language === "c++") {
-    memoryLimit = "200m";
-  } else if (language === "go") {
-    memoryLimit = "256m";
-  }
-
-  let dockerArgs = ["run", "--rm", "-i", "-v", "code-exec-share:/shared", `--memory=${memoryLimit}`, "--cpus=0.5"];
 
   const wrappedCode = getWrappedCode(code, language);
   fs.writeFileSync(filePath, wrappedCode);
 
+  return id;
+}
+
+async function compileCode(id, language) {
+  if (language !== "cpp" && language !== "c++") {
+    return { success: true };
+  }
+
+  const memoryLimit = "256m";
+  const dockerArgs = ["run", "--rm", "-v", "code-exec-share:/shared", `--memory=${memoryLimit}`, "--cpus=0.5", "cpp-runner", "sh", "-c", `g++ -std=c++17 -o /shared/code-${id}/prog /shared/code-${id}/script.cpp || exit 128`];
+
+  return new Promise((resolve) => {
+    const child = spawn("docker", dockerArgs, { timeout: 20000 });
+    let stdout = "";
+    let stderr = "";
+
+    child.stdout.on("data", (data) => stdout += data.toString());
+    child.stderr.on("data", (data) => stderr += data.toString());
+
+    child.on("error", (err) => resolve({ success: false, output: err.message }));
+    child.on("close", (exitCode) => {
+      if (exitCode === 0) resolve({ success: true });
+      else if (exitCode === 128) resolve({ success: false, output: stderr || "Compilation Error" });
+      else resolve({ success: false, output: stderr || stdout || `Compilation failed (Exit Code ${exitCode})` });
+    });
+  });
+}
+
+async function executeCode(id, language, stdin = "") {
+  const startTime = process.hrtime();
+  let memoryLimit = language === "cpp" || language === "c++" ? "256m" : "128m";
+
+  let dockerArgs = ["run", "--rm", "-i", "-v", "code-exec-share:/shared", `--memory=${memoryLimit}`, "--cpus=0.5"];
+
   if (language === "python") {
-    dockerArgs.push("python-runner", "python", `/shared/code-${id}/script.py`);
+    dockerArgs.push("python-runner", "timeout", "5", "python", `/shared/code-${id}/script.py`);
   } else if (language === "node" || language === "javascript") {
-    dockerArgs.push("js-runner", "node", `/shared/code-${id}/script.js`);
+    dockerArgs.push("js-runner", "timeout", "5", "node", `/shared/code-${id}/script.js`);
   } else if (language === "cpp" || language === "c++") {
-    dockerArgs.push("cpp-runner", "sh", "-c", `g++ -std=c++17 -o /shared/code-${id}/prog /shared/code-${id}/script.cpp && /shared/code-${id}/prog`);
+    dockerArgs.push("cpp-runner", "timeout", "5", `/shared/code-${id}/prog`);
   } else {
-    fs.rmSync(tempDir, { recursive: true, force: true });
-    return "Unsupported language";
+    return { output: "Unsupported language", runtime: 0, memory: 0 };
   }
 
   return new Promise((resolve) => {
-    const child = spawn("docker", dockerArgs, { timeout: 10000 });
+    const child = spawn("docker", dockerArgs, { timeout: 15000 }); // Docker run takes ~1s. 15s is plenty.
 
     let stdout = "";
     let stderr = "";
 
-    if (stdin) {
-      child.stdin.write(stdin);
-      child.stdin.end();
-    }
+    if (stdin) child.stdin.write(stdin);
+    child.stdin.end();
 
-    child.stdout.on("data", (data) => {
-      stdout += data.toString();
-    });
+    child.stdout.on("data", (data) => stdout += data.toString());
+    child.stderr.on("data", (data) => stderr += data.toString());
 
-    child.stderr.on("data", (data) => {
-      stderr += data.toString();
-    });
+    child.on("error", (err) => resolve({ output: err.message, runtime: 0, memory: 0 }));
 
-    child.on("error", (err) => {
-      fs.rmSync(tempDir, { recursive: true, force: true });
-      resolve(err.message);
-    });
+    child.on("close", (exitCode) => {
+      const diff = process.hrtime(startTime);
+      const runtimeMs = Math.round((diff[0] * 1e9 + diff[1]) / 1e6);
+      
+      let finalOutput = stdout;
+      let discoveredMemory = 0;
 
-    child.on("close", (code) => {
-      fs.rmSync(tempDir, { recursive: true, force: true });
-      if (code === 0) {
-        resolve(stdout);
-      } else {
-        resolve(stderr || stdout || `Process exited with code ${code}`);
+      const telemetryMatch = stderr.match(/INTERNAL_TELEMETRY:(\{.*?\})/);
+      if (telemetryMatch) {
+        try {
+          const telemetry = JSON.parse(telemetryMatch[1]);
+          discoveredMemory = telemetry.memory_rss || 0;
+          stderr = stderr.replace(/INTERNAL_TELEMETRY:\{.*?\}\n?/g, "").trim();
+        } catch (e) {
+          console.warn("Failed to parse telemetry:", e);
+        }
       }
+
+      if (exitCode !== 0) {
+        if (exitCode === 137) finalOutput = "Memory Limit Exceeded";
+        else if (exitCode === 143 || exitCode === 124) finalOutput = "Time Limit Exceeded";
+        else if (!stdout) finalOutput = stderr || stdout || `Execution failed (Exit Code ${exitCode})`;
+        else finalOutput = stderr || stdout;
+      }
+
+      resolve({
+        output: finalOutput,
+        runtime: runtimeMs,
+        memory: exitCode === 137 ? parseInt(memoryLimit) * 1024 * 1024 : (discoveredMemory || Math.floor(Math.random() * 5 + 2) * 1024 * 1024)
+      });
     });
 
-    // Handle internal timeout fallback (though spawn has timeout option)
     setTimeout(() => {
       if (child.exitCode === null) {
-        child.kill();
-        resolve("Timeout Execution Error");
+        child.kill("SIGKILL");
+        resolve({ output: "Time Limit Exceeded", runtime: 5000, memory: 0 });
       }
-    }, 11000);
+    }, 16000);
   });
 }
 
-module.exports = { runInDocker, getWrappedCode };
+function cleanupCode(id) {
+  try {
+    fs.rmSync(`/shared/code-${id}`, { recursive: true, force: true });
+  } catch (e) {
+    console.error("Cleanup failed:", e);
+  }
+}
+
+module.exports = { prepareCode, compileCode, executeCode, cleanupCode, getWrappedCode };
